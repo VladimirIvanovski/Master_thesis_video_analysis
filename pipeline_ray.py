@@ -56,7 +56,7 @@ def main():
     # 🔧 Safe init: in-process only (no background daemons)
     ray.init( local_mode=True,# include_dashboard=True,
               ignore_reinit_error=True,
-              num_cpus=8,
+              num_cpus=10,
               num_gpus=1 )
     print(f"🚀 Ray initialized with {ray.cluster_resources()} resources")
 
@@ -84,7 +84,7 @@ def main():
     for c, fut in transcription_tasks:
         text = ray.get(fut)
         transcriptions[c] = text
-        save_to_elasticsearch(c, text)  # ✅ Save each transcription to Elasticsearch
+        # save_to_elasticsearch(c, text)  # ✅ Save each transcription to Elasticsearch
 
     ensure_dir(TRANSCRIPTIONS_DIR)
     pd.DataFrame(list(transcriptions.items()), columns=["creator", "transcription"]).to_csv(

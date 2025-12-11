@@ -1,5 +1,5 @@
 import os, subprocess, ray
-from config import RESULTS_DIR, MAX_VIDEOS_PER_CREATOR
+from config import RESULTS_DIR, MAX_VIDEOS_PER_CREATOR, get_random_proxy
 from utils import ensure_dir
 
 # ======================================================
@@ -7,13 +7,23 @@ from utils import ensure_dir
 # ======================================================
 
 @ray.remote(num_cpus=1)
-def download_video(url: str, output_path: str):
+def download_video(url: str, output_path: str, proxy: str = None):
     """Download a single video using yt-dlp."""
     try:
+        command = ["yt-dlp", "-q", "-o", output_path]
+
+        if proxy:
+            command += ["--proxy", proxy]
+
+        command.append(url)
+
         subprocess.run(
-            ["yt-dlp", "-q", "-o", output_path, url],
-            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            command,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
         )
+
         return output_path
     except subprocess.CalledProcessError:
         return None
@@ -75,7 +85,7 @@ def extract_10_frames_cpu(video_path, save_dir):
         return None
 
 
-@ray.remote(num_cpus=2)
+@ray.remote(num_cpus=10)
 def process_creator(row_dict):
     """Full CPU pipeline per creator: download, extract audio/frames."""
     username = row_dict["username"]
