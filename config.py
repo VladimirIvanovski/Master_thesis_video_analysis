@@ -15,12 +15,13 @@ def get_random_proxy():
 
 RESULTS_DIR = "results_4"
 TRANSCRIPTIONS_DIR = "transcriptions"
+ES_PASSWORD = "Pacer12345!"
 
 # TikTok filtering
-NUM_CREATORS = 10
+NUM_CREATORS = 350
 MAX_VIDEOS_PER_CREATOR = 3
-MIN_FOLLOWERS = 200_000
-MIN_VIDEO_COUNT = 100
+MIN_FOLLOWERS = 150_000
+MIN_VIDEO_COUNT = 80
 
 # Models
 WHISPER_MODEL_SIZE = "tiny"
@@ -33,11 +34,11 @@ COMPUTE_TYPE = "float16"
 MAX_CPU_WORKERS = 10
 
 # Embedding weights
-IMAGE_WEIGHT = 0.6
-TEXT_WEIGHT = 0.4
+IMAGE_WEIGHT = 0.85
+TEXT_WEIGHT = 0.15
 
 # Input file
 CSV_PATH = "C:/Users/vladimir/Downloads/tiktok_profile_5k.csv"
 
 # Ray configuration
-RAY_DASHBOARD = False
+RAY_DASHBOARD = True

@@ -7,26 +7,32 @@ from utils import ensure_dir
 # ======================================================
 
 @ray.remote(num_cpus=1)
-def download_video(url: str, output_path: str, proxy: str = None):
-    """Download a single video using yt-dlp."""
-    try:
-        command = ["yt-dlp", "-q", "-o", output_path]
+def download_video(url: str, output_path: str, proxy: str = None, max_retries: int = 4):
+    """Download a single video using yt-dlp with retry logic."""
+    for attempt in range(max_retries + 1):
+        try:
+            command = ["yt-dlp", "-q", "-o", output_path]
 
-        if proxy:
-            command += ["--proxy", proxy]
+            if proxy:
+                command += ["--proxy", proxy]
 
-        command.append(url)
+            command.append(url)
 
-        subprocess.run(
-            command,
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
+            subprocess.run(
+                command,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
 
-        return output_path
-    except subprocess.CalledProcessError:
-        return None
+            return output_path
+        except subprocess.CalledProcessError:
+            if attempt < max_retries:
+                print(f"⚠️  Download failed, retrying ({attempt + 1}/{max_retries})...")
+            else:
+                print(f"❌ Download failed after {max_retries + 1} attempts: {url}")
+    
+    return None
 
 
 @ray.remote(num_cpus=1)
