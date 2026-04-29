@@ -51,15 +51,49 @@ class EmbeddingActor:
         print("embeddings completed for creator ",creator_name)
         return creator_name, img_emb, txt_emb
 
-    def build_faiss_index(self, image_embs, text_embs, creators):
+    def build_faiss_index(self, image_embs, text_embs, creators, transcriptions=None):
         """Combine embeddings and build FAISS index."""
         combined = (IMAGE_WEIGHT * image_embs + TEXT_WEIGHT * text_embs)
-        combined /= np.linalg.norm(combined, axis=1, keepdims=True)
+        norms = np.linalg.norm(combined, axis=1)
+        img_norms = np.linalg.norm(image_embs, axis=1)
+        txt_norms = np.linalg.norm(text_embs, axis=1)
+        
+        # Filter out creators with zero image embeddings or very small combined embeddings
+        valid_mask = (img_norms > 0.01) & (norms > 0.01) & (txt_norms > 0.01)
+        
+        # Also filter out creators with very short or repetitive transcriptions
+        if transcriptions:
+            def is_meaningful(text):
+                text = str(text).strip()
+                if len(text) < 50:
+                    return False
+                # Check for excessive repetition
+                words = text.lower().split()
+                if len(words) > 0:
+                    most_common_word = max(set(words), key=words.count)
+                    repeat_ratio = words.count(most_common_word) / len(words)
+                    if repeat_ratio > 0.4:  # >40% repetition is too much
+                        return False
+                return True
+            
+            meaningful_mask = np.array([is_meaningful(transcriptions.get(c, "")) for c in creators])
+            valid_mask = valid_mask & meaningful_mask
+        
+        valid_indices = np.where(valid_mask)[0]
+        
+        if len(valid_indices) < len(creators):
+            skipped = [creators[i] for i in np.where(~valid_mask)[0]]
+            print(f"⚠️  Skipping {len(skipped)} creators with zero/small embeddings or short transcriptions: {skipped[:10]}")
+        
+        combined_valid = combined[valid_indices]
+        combined_valid /= np.linalg.norm(combined_valid, axis=1, keepdims=True)
+        creators_valid = [creators[i] for i in valid_indices]
+        
         index = faiss.IndexFlatIP(512)
-        index.add(combined)
+        index.add(combined_valid)
         faiss.write_index(index, "creators.index")
         with open("creators.txt", "w") as f:
-            f.write("\n".join(creators))
-        np.save("image_embs.npy", image_embs)
-        np.save("text_embs.npy", text_embs)
-        print(f"✅ FAISS index built with {len(creators)} creators.")
+            f.write("\n".join(creators_valid))
+        np.save("image_embs.npy", image_embs[valid_indices])
+        np.save("text_embs.npy", text_embs[valid_indices])
+        print(f"✅ FAISS index built with {len(creators_valid)} creators (filtered {len(creators) - len(creators_valid)}).")

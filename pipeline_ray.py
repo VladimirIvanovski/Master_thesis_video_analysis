@@ -53,23 +53,28 @@ def main():
 
     start = time.time()
 
-    # 🔧 Safe init: in-process only (no background daemons)
-    ray.init( local_mode=True,# include_dashboard=True,
-              ignore_reinit_error=True,
-              num_cpus=10,
-              num_gpus=1 )
-    print(f"🚀 Ray initialized with {ray.cluster_resources()} resources")
+    ray.init(
+        include_dashboard=True,
+        dashboard_host="0.0.0.0",
+        ignore_reinit_error=True,
+        num_cpus=10,
+        num_gpus=1,
+    )
+    print(f"🚀 Ray initialized | resources: {ray.cluster_resources()}")
+    print(f"📊 Ray Dashboard: http://localhost:8265")
 
     # ---------------- Stage 1: Download & extract ----------------
     df = pd.read_csv(CSV_PATH)
     df = df[(df["follower_count"] > MIN_FOLLOWERS) & (df["video_count"] > MIN_VIDEO_COUNT)]
     df = df.head(NUM_CREATORS)
 
+    t1 = time.time()
     cpu_tasks = [process_creator.remote(row._asdict()) for row in df.itertuples(index=False)]
     completed = ray.get(cpu_tasks)
-    print(f"✅ Stage 1 completed for {len(completed)} creators")
+    print(f"✅ Stage 1: {len(completed)} users processed | {time.time()-t1:.1f}s")
 
     # ---------------- Stage 2: Transcription ----------------
+    t2 = time.time()
     whisper = WhisperActor.remote()
     creators = sorted([
         d for d in os.listdir(RESULTS_DIR)
@@ -90,18 +95,26 @@ def main():
     pd.DataFrame(list(transcriptions.items()), columns=["creator", "transcription"]).to_csv(
         os.path.join(TRANSCRIPTIONS_DIR, "creator_transcriptions.csv"), index=False
     )
-    print(f"✅ Stage 2 done, saved transcriptions")
+    print(f"✅ Stage 2: {len(transcriptions)} users processed | {time.time()-t2:.1f}s")
 
     # ---------------- Stage 3: Embeddings + FAISS ----------------
+    t3 = time.time()
     embedder = EmbeddingActor.remote()
     emb_results = []
     for c, text in transcriptions.items():
         emb_results.append(ray.get(embedder.embed_creator.remote(c, text, RESULTS_DIR)))
 
     creators_list, img_embs, txt_embs = zip(*emb_results)
-    embedder.build_faiss_index.remote(np.stack(img_embs), np.stack(txt_embs), list(creators_list))
+    embedder.build_faiss_index.remote(np.stack(img_embs), np.stack(txt_embs), list(creators_list), transcriptions)
+    print(f"✅ Stage 3: {len(emb_results)} users processed | {time.time()-t3:.1f}s")
 
-    print(f"\n⏱️ Total pipeline time: {time.time() - start:.2f}s")
+    total = time.time() - start
+    print(f"\n{'='*50}")
+    print(f"⏱️  Stage 1 (download/extract) : {t2-t1:.1f}s")
+    print(f"⏱️  Stage 2 (transcription)    : {t3-t2:.1f}s")
+    print(f"⏱️  Stage 3 (embeddings/FAISS) : {total-(t3-start):.1f}s")
+    print(f"⏱️  Total pipeline time        : {total:.1f}s")
+    print(f"{'='*50}")
     ray.shutdown()
 
 
