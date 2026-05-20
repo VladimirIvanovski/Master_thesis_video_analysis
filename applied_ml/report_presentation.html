@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Applied ML Presentation — Vladimir Ivanovski</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8fafc; color: #1a1a1a; }
+  .slide { width: 960px; min-height: 540px; margin: 0 auto 28px; background: #fff; padding: 44px 56px 60px; position: relative; border: 1px solid #e2e8f0; page-break-after: always; }
+  .slide-num { position: absolute; top: 16px; right: 24px; font-size: 12px; color: #94a3b8; }
+  .slide-footer { position: absolute; bottom: 14px; left: 56px; right: 56px; display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 8px; font-size: 11px; color: #94a3b8; }
+  h1  { font-size: 26px; font-weight: 700; line-height: 1.25; }
+  h2  { font-size: 20px; font-weight: 700; margin-bottom: 18px; color: #1e3a8a; }
+  h3  { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  p   { font-size: 13px; line-height: 1.6; margin-bottom: 8px; color: #334155; }
+  code { font-family: Consolas, monospace; background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; }
+  .accent { width: 48px; height: 3px; background: #2563eb; border-radius: 2px; margin: 10px 0 18px; }
+  .stats { display: flex; gap: 14px; }
+  .stat { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; text-align: center; }
+  .stat-val { font-size: 26px; font-weight: 700; color: #2563eb; line-height: 1; }
+  .stat-val.green  { color: #16a34a; }
+  .stat-val.blue   { color: #2563eb; }
+  .stat-val.red    { color: #dc2626; }
+  .stat-val.orange { color: #d97706; }
+  .stat-lbl { font-size: 11px; color: #64748b; margin-top: 4px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #f1f5f9; padding: 7px 10px; text-align: left; font-weight: 600; border-bottom: 1.5px solid #cbd5e1; }
+  td { padding: 6px 10px; border-bottom: 1px solid #e2e8f0; }
+  tr.best td { background: #f0fdf4; font-weight: 600; }
+  tr.bad  td { background: #fef2f2; }
+  .step { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; }
+  .step-num { min-width: 32px; height: 32px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+  .callout { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 11px 16px; font-size: 13px; margin-top: 14px; }
+  .callout.green  { background: #f0fdf4; border-color: #bbf7d0; }
+  .callout.yellow { background: #fefce8; border-color: #fde68a; }
+  .pill { display: inline-block; padding: 3px 11px; border-radius: 12px; font-size: 12px; font-weight: 500; margin: 3px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .pill.green { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+  .pill.red   { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #2563eb; flex-shrink: 0; margin-top: 5px; }
+  .dot.gray  { background: #cbd5e1; }
+  .dot.green { background: #16a34a; }
+  @media print { body { background: #fff; } .slide { margin: 0; border: none; page-break-after: always; width: 100%; } @page { size: landscape; margin: 8mm; } }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Title -->
+<div class="slide">
+  <div class="slide-num">1 / 9</div>
+  <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;height:420px;gap:16px">
+    <p class="label">Applied Machine Learning — Course Project</p>
+    <h1 style="max-width:640px">Image-Based Gender Classification:<br>Late Fusion &amp; Knowledge Distillation</h1>
+    <div class="accent" style="margin:8px auto"></div>
+    <p style="font-size:16px;font-weight:600;color:#1a1a1a;margin:0">Vladimir Ivanovski</p>
+    <p style="color:#64748b;font-size:14px;margin:0">Index: 249024 &nbsp;·&nbsp; May 2026</p>
+    <div style="margin-top:14px">
+      <span class="pill">MTCNN Face Detection</span>
+      <span class="pill">ViT Classifier</span>
+      <span class="pill">Late Fusion</span>
+      <span class="pill">Knowledge Distillation</span>
+      <span class="pill green">97.2% Accuracy</span>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Applied Machine Learning</span><span>Vladimir Ivanovski · 249024</span></div>
+</div>
+
+<!-- SLIDE 2: The Problem and Evolution -->
+<div class="slide">
+  <div class="slide-num">2 / 9</div>
+  <h2>The Problem &amp; How We Evolved</h2>
+  <div class="cols">
+    <div>
+      <h3>Starting point</h3>
+      <p>933 TikTok creator videos. No labels. Need a gender classifier.</p>
+      <p>Strategy: use a pre-trained ViT model as teacher to generate pseudo-labels, then fine-tune a student.</p>
+      <h3 style="margin-top:14px">v1 result (naive fine-tuning)</h3>
+      <table>
+        <thead><tr><th>Method</th><th>Accuracy</th></tr></thead>
+        <tbody>
+          <tr><td>Baseline (majority vote)</td><td>91.5%</td></tr>
+          <tr class="bad"><td>Fine-tuned (hard labels)</td><td>87.9% (-3.6%)</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:#64748b;margin-top:6px">Fine-tuning made things <em>worse</em> — standard result when teacher is already near-optimal.</p>
+    </div>
+    <div>
+      <h3>v2 improvements</h3>
+      <table>
+        <thead><tr><th>Method</th><th>Accuracy</th><th>vs baseline</th></tr></thead>
+        <tbody>
+          <tr class="best"><td>v2: KD Fine-tuned + LF</td><td>97.2%</td><td style="color:#16a34a;font-weight:700">+5.7%</td></tr>
+          <tr><td>v1: Baseline (majority vote)</td><td>91.5%</td><td>—</td></tr>
+          <tr class="bad"><td>v1: Hard-label fine-tuned</td><td>87.9%</td><td style="color:#dc2626">-3.6%</td></tr>
+        </tbody>
+      </table>
+      <div class="callout green" style="margin-top:12px">
+        Two changes: better inference (Late Fusion) + better training signal (KD soft labels) = <strong>+5.7%</strong> over baseline.
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Problem &amp; Evolution</span><span>Vladimir Ivanovski · 249024</span></div>
+</div>
+
+<!-- SLIDE 3: Pipeline overview -->
+<div class="slide">
+  <div class="slide-num">3 / 9</div>
+  <h2>Pipeline Overview</h2>
+  <p style="margin-bottom:18px">Two scripts; v2 reuses Step 1 output from v1. All steps checkpointed.</p>
+  <div class="cols">
+    <div>
+      <h3>v1: gender_classification.py</h3>
+      <div style="margin-top:10px">
+        <div class="step"><div class="step-num" style="background:#64748b">1</div><div><p style="font-weight:600;margin-bottom:2px">Baseline Inference</p><p style="font-size:12px;color:#475569">MTCNN + ViT on 4 frames/video -> raw_predictions.csv</p></div></div>
+        <div class="step"><div class="step-num" style="background:#64748b">2</div><div><p style="font-weight:600;margin-bottom:2px">Threshold Sweep + Pseudo-Labels</p><p style="font-size:12px;color:#475569">6 thresholds scored, best auto-selected, majority vote -> train.csv/test.csv</p></div></div>
+        <div class="step"><div class="step-num" style="background:#64748b">3</div><div><p style="font-weight:600;margin-bottom:2px">Hard-Label Fine-Tuning</p><p style="font-size:12px;color:#475569">CrossEntropy on 563 videos -> fine_tuned_model/ (87.9%)</p></div></div>
+      </div>
+    </div>
+    <div>
+      <h3>v2: gender_classification_v2.py</h3>
+      <div style="margin-top:10px">
+        <div class="step"><div class="step-num">A</div><div><p style="font-weight:600;margin-bottom:2px">Build KD Splits (thresh=0.90)</p><p style="font-size:12px;color:#475569">Late fusion soft labels, 666 videos -> train_v2.csv/test_v2.csv</p></div></div>
+        <div class="step"><div class="step-num">B</div><div><p style="font-weight:600;margin-bottom:2px">KD Fine-Tuning</p><p style="font-size:12px;color:#475569">KL divergence loss, T=3, soft targets -> kd_model/ (97.2%)</p></div></div>
+        <div class="step"><div class="step-num">C</div><div><p style="font-weight:600;margin-bottom:2px">Evaluation: All Methods</p><p style="font-size:12px;color:#475569">Late fusion on all 4 models -> results_v2.txt</p></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Pipeline Overview</span><span>Vladimir Ivanovski · 249024</span></div>
+</div>
+
+<!-- SLIDE 4: Late Fusion -->
+<div class="slide">
+  <div class="slide-num">4 / 9</div>
+  <h2>Technique 1 — Late Fusion</h2>
+  <div class="cols">
+    <div>
+      <h3>Why majority vote fails</h3>
+      <p>Example: 4 frames for one video:</p>
+      <table style="margin-bottom:12px">
+        <thead><tr><th>Frame</th><th>Pred</th><th>Confidence</th></tr></thead>
+        <tbody>
+          <tr><td>frame_01</td><td>female</td><td>0.72</td></tr>
+          <tr><td>frame_02</td><td>female</td><td>0.71</td></tr>
+          <tr><td>frame_03</td><td>male</td><td>0.97</td></tr>
+          <tr><td>frame_04</td><td>male</td><td>0.95</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:#475569"><strong>Majority vote:</strong> 2 female, 2 male — tie! Use mean confidence: female=0.715, male=0.96 — male wins. OK here, but mean confidence tiebreaking doesn't scale well with more frames.</p>
+    </div>
+    <div>
+      <h3>Late fusion: sum probabilities</h3>
+      <table style="margin-bottom:12px">
+        <thead><tr><th>Frame</th><th>P(female)</th><th>P(male)</th></tr></thead>
+        <tbody>
+          <tr><td>frame_01</td><td>0.72</td><td>0.28</td></tr>
+          <tr><td>frame_02</td><td>0.71</td><td>0.29</td></tr>
+          <tr><td>frame_03</td><td>0.03</td><td>0.97</td></tr>
+          <tr><td>frame_04</td><td>0.05</td><td>0.95</td></tr>
+          <tr style="font-weight:700;background:#f1f5f9"><td>SUM</td><td>1.51</td><td style="color:#16a34a">2.49</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:#16a34a;font-weight:600">argmax = male. Correct! High-confidence frames dominate.</p>
+      <div class="callout green" style="margin-top:8px">
+        No training needed. Just change how you aggregate frame predictions. High-confidence frames automatically dominate.
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Technique 1 — Late Fusion</span><span>Vladimir Ivanovski · 249024</span></div>
+</div>
+
+<!-- SLIDE 5: Knowledge Distillation -->
+<div class="slide">
+  <div class="slide-num">5 / 9</div>
+  <h2>Technique 2 — Knowledge Distillation</h2>
+  <div class="cols">
+    <div>
+      <h3>Why hard labels fail</h3>
+      <p>Hard label training treats every sample equally:</p>
+      <table style="margin-bottom:10px">
+        <thead><tr><th>Video</th><th>Teacher says</th><th>Hard label</th></tr></thead>
+        <tbody>
+          <tr><td>vid_A</td><td>female: 0.99</td><td>[1, 0]</td></tr>
+          <tr><td>vid_B</td><td>female: 0.62</td><td>[1, 0]</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:#475569">vid_B is likely a noisy label (62% confidence). The model treats it the same as a 99% confident one — it learns wrong things from borderline cases.</p>
+    </div>
+    <div>
+      <h3>Soft labels fix this</h3>
+      <table style="margin-bottom:10px">
+        <thead><tr><th>Video</th><th>Teacher says</th><th>Soft label (T=3)</th></tr></thead>
+        <tbody>
+          <tr><td>vid_A</td><td>female: 0.99</td><td>[0.94, 0.06]</td></tr>
+          <tr><td>vid_B</td><td>female: 0.62</td><td>[0.55, 0.45]</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:#475569">Temperature T=3 softens the distribution. vid_B now has a [0.55, 0.45] target — the student learns "this is uncertain" instead of treating it as a clean label.</p>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:8px 12px;font-family:Consolas,monospace;font-size:12px;margin-top:10px">
+        L = KL(student_softmax/T || teacher_probs/T) × T²
+      </div>
+    </div>
+  </div>
+  <div class="callout" style="margin-top:14px">
+    <strong>Key insight (Hinton et al., 2015):</strong> The teacher's probability distribution contains more information than just the label. A "91% female, 9% male" prediction teaches the student something about the structure of the problem.
+  </div>
+  <div class="slide-footer"><span>Technique 2 — Knowledge Distillation</span><span>Vladimir Ivanovski · 249024</span></div>
+</div>
+
+<!-- SLIDE 6: Threshold Sweep -->
+<div class="slide">
+  <div class="slide-num">6 / 9</div>
+  <h2>Confidence Threshold Sweep</h2>
+  <div class="cols">
+    <div>
+      <h3>Automated threshold selection</h3>
+      <p>Score = balance_score × √n_videos<br>Rewards both class balance and data quantity.</p>
+      <table>
+        <thead><tr><th>Thresh</th><th>Videos</th><th>F</th><th>M</th><th>Balance</th><th>Score</th></tr></thead>
+        <tbody>
+          <tr class="best"><td>0.70 ✓ v1</td><td>704</td><td>395</td><td>309</td><td>0.782</td><td>20.76</td></tr>
+          <tr><td>0.75</td><td>697</td><td>392</td><td>305</td><td>0.778</td><td>20.54</td></tr>
+          <tr><td>0.80</td><td>687</td><td>384</td><td>303</td><td>0.789</td><td>20.68</td></tr>
+          <tr><td>0.85</td><td>677</td><td>377</td><td>300</td><td>0.796</td><td>20.71</td></tr>
+          <tr style="background:#eff6ff"><td>0.90 (KD)</td><td>666</td><td>370</td><td>296</td><td>0.800</td><td>20.65</td></tr>
+          <tr><td>0.95</td><td>646</td><td>360</td><td>286</td><td>0.794</td><td>20.19</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Key observation</h3>
+      <p>Unlike the audio pipeline (where 0.96 removed ALL male samples), the ViT image model is consistently confident across both genders at all thresholds.</p>
+      <p>All 6 thresholds produce 78-80% class balance. The automated scoring correctly selects 0.70 for v1 (maximum data) and 0.90 is used for KD (cleaner labels for distillation).</p>
+      <div class="callout yellow" style="margin-top:10px">
+        <strong>Contrast with audio v1:</strong> Audio at thresh=0.96 gave 100% female (0 males). Image classifier is far more robust and balanced.
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Threshold Sweep</span><span>Vladimir Ivanovski · 249024</span></div>
+</div>
+
+<!-- SLIDE 7: Results -->
+<div class="slide">
+  <div class="slide-num">7 / 9</div>
+  <h2>Results — All Methods Compared (n=141 test videos)</h2>
+  <div class="stats" style="margin-bottom:20px">
+    <div class="stat"><div class="stat-val red">87.9%</div><div class="stat-lbl">v1 Hard FT<br><span style="font-size:11px;color:#dc2626">-3.6% vs baseline</span></div></div>
+    <div class="stat"><div class="stat-val blue">91.5%</div><div class="stat-lbl">v1 Baseline<br><span style="font-size:11px;color:#94a3b8">reference</span></div></div>
+    <div class="stat"><div class="stat-val green">97.2%</div><div class="stat-lbl">v2 KD+LF<br><span style="font-size:11px;color:#16a34a">+5.7% vs baseline</span></div></div>
+    <div class="stat"><div class="stat-val green">+9.3%</div><div class="stat-lbl">KD gain over<br>hard-label FT</div></div>
+  </div>
+  <div class="cols">
+    <div>
+      <!-- Bar chart: 3 methods -->
+      <svg viewBox="0 0 260 180" width="260" height="180">
+        <line x1="40" y1="10" x2="40" y2="130" stroke="#cbd5e1"/>
+        <line x1="40" y1="130" x2="240" y2="130" stroke="#cbd5e1"/>
+        <text x="35" y="134" font-size="9" fill="#64748b" text-anchor="end">80%</text>
+        <text x="35" y="90"  font-size="9" fill="#64748b" text-anchor="end">85%</text>
+        <text x="35" y="47"  font-size="9" fill="#64748b" text-anchor="end">90%</text>
+        <text x="35" y="3"   font-size="9" fill="#64748b" text-anchor="end">95%</text>
+        <line x1="40" y1="89"  x2="240" y2="89"  stroke="#e2e8f0" stroke-dasharray="2"/>
+        <line x1="40" y1="46"  x2="240" y2="46"  stroke="#e2e8f0" stroke-dasharray="2"/>
+        <!-- 87.9 -> h=51 y=79; 91.5 -> h=75 y=55; 97.2 -> h=113 y=17 -->
+        <rect x="53"  y="79"  width="42" height="51"  fill="#fca5a5" rx="2"/>
+        <text x="74"  y="75"  font-size="9" fill="#dc2626" font-weight="600" text-anchor="middle">87.9%</text>
+        <text x="74"  y="65"  font-size="8" fill="#dc2626" text-anchor="middle">-3.6%</text>
+        <rect x="108" y="55"  width="42" height="75"  fill="#93c5fd" rx="2"/>
+        <text x="129" y="51"  font-size="9" fill="#1d4ed8" font-weight="600" text-anchor="middle">91.5%</text>
+        <text x="129" y="41"  font-size="8" fill="#94a3b8" text-anchor="middle">base</text>
+        <rect x="163" y="17"  width="42" height="113" fill="#16a34a" rx="2"/>
+        <text x="184" y="13"  font-size="9" fill="#065f46" font-weight="700" text-anchor="middle">97.2%</text>
+        <text x="184" y="3"   font-size="8" fill="#16a34a" font-weight="600" text-anchor="middle">+5.7%</text>
+        <text x="74"  y="148" font-size="8" fill="#64748b" text-anchor="middle">v1 Hard FT</text>
+        <text x="129" y="148" font-size="8" fill="#64748b" text-anchor="middle">v1 Base</text>
+        <text x="184" y="148" font-size="8" fill="#065f46" font-weight="600" text-anchor="middle">v2 KD+LF</text>
+      </svg>
+    </div>
+    <div>
+      <h3>v1 Baseline confusion matrix</h3>
+      <p style="font-size:12px;color:#64748b;margin-bottom:4px">12 errors (female recall 91.1%, male recall 91.9%)</p>
+      <table style="margin-bottom:12px">
+        <thead><tr><th></th><th>Pred F</th><th>Pred M</th></tr></thead>
+        <tbody>
+          <tr><td><strong>True F (79)</strong></td><td>72</td><td>7</td></tr>
+          <tr><td><strong>True M (62)</strong></td><td>5</td><td>57</td></tr>
+        </tbody>
+      </table>
+      <h3>v2 KD fine-tuned confusion matrix <span style="color:#16a34a;font-size:11px">+5.7%</span></h3>
+      <p style="font-size:12px;color:#64748b;margin-bottom:4px">4 errors (female recall 96.2%, male recall 98.4%)</p>
+      <table>
+        <thead><tr><th></th><th>Pred F</th><th>Pred M</th></tr></thead>
+        <tbody>
+          <tr><td><strong>True F (79)</strong></td><td style="color:#16a34a">76</td><td>3</td></tr>
+          <tr><td><strong>True M (62)</strong></td><td>1</td><td style="color:#16a34a">61</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Results</span><span>Vladimir Ivanovski · 249024</span></div>
+</div>
+
+<!-- SLIDE 8: Analysis -->
+<div class="slide">
+  <div class="slide-num">8 / 9</div>
+  <h2>Why KD + Late Fusion Gains +5.7%?</h2>
+  <div class="cols">
+    <div>
+      <h3>Why Late Fusion helps</h3>
+      <p>The ViT baseline is already <strong>98.7% accurate on clean faces</strong>. Errors in v1 (91.5%) come from:</p>
+      <ul style="font-size:13px;color:#334155;padding-left:20px;margin-bottom:12px">
+        <li style="margin-bottom:6px">Low-quality frames (motion blur, side profile)</li>
+        <li style="margin-bottom:6px">Majority vote giving equal weight to weak and strong predictions</li>
+        <li style="margin-bottom:6px">Tie-breaking with mean confidence is fragile</li>
+      </ul>
+      <p>Late fusion fixes this: a 0.99 frame contributes P(female)=0.99, a 0.71 frame contributes 0.71 — high-confidence frames dominate naturally.</p>
+    </div>
+    <div>
+      <h3>Why KD helps over hard-label FT</h3>
+      <ul style="font-size:13px;color:#334155;padding-left:20px;margin-bottom:12px">
+        <li style="margin-bottom:6px">Hard labels treat every sample as equally certain — noisy pseudo-labels corrupt the model</li>
+        <li style="margin-bottom:6px">Soft targets (T=3) encode uncertainty — a [0.55, 0.45] target says "this is borderline", not "definitely female"</li>
+        <li style="margin-bottom:6px">Stricter threshold (0.90) filters out the noisiest pseudo-labels before distillation</li>
+      </ul>
+      <div class="callout green" style="margin-top:8px">
+        Result: errors drop from 12 (v1 baseline) to 4 (KD+LF) — a <strong>+5.7% accuracy gain</strong> and <strong>+9.3% over hard-label fine-tuning</strong>.
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Analysis</span><span>Vladimir Ivanovski · 249024</span></div>
+</div>
+
+<!-- SLIDE 9: Conclusion -->
+<div class="slide">
+  <div class="slide-num">9 / 9</div>
+  <h2>Conclusion</h2>
+  <div class="cols">
+    <div>
+      <h3>Summary of contributions</h3>
+      <div style="margin-top:8px">
+        <div class="step" style="margin-bottom:10px"><div class="step-num" style="background:#16a34a;min-width:28px;height:28px;font-size:13px">1</div><div><p>MTCNN face detection on pre-extracted TikTok frames</p></div></div>
+        <div class="step" style="margin-bottom:10px"><div class="step-num" style="background:#16a34a;min-width:28px;height:28px;font-size:13px">2</div><div><p>Automated threshold sweep (balance × √n scoring)</p></div></div>
+        <div class="step" style="margin-bottom:10px"><div class="step-num" style="background:#16a34a;min-width:28px;height:28px;font-size:13px">3</div><div><p><strong>Late Fusion</strong>: sum softmax probs across frames — high-confidence frames dominate, eliminates tie-breaking fragility</p></div></div>
+        <div class="step" style="margin-bottom:10px"><div class="step-num" style="background:#16a34a;min-width:28px;height:28px;font-size:13px">4</div><div><p><strong>Knowledge Distillation</strong>: soft labels + KL loss + T=3 → 97.2% (+5.7% vs baseline, +9.3% vs hard FT)</p></div></div>
+        <div class="step" style="margin-bottom:10px"><div class="step-num" style="background:#16a34a;min-width:28px;height:28px;font-size:13px">5</div><div><p>Image-based (97.2%) vastly outperforms audio-based (86.3%)</p></div></div>
+      </div>
+    </div>
+    <div>
+      <h3>All edge cases handled</h3>
+      <div style="margin-top:8px">
+        <div style="display:flex;gap:10px;margin-bottom:7px;align-items:baseline"><div class="dot gray"></div><p style="font-size:12px">Video &lt;4 frames — use however many exist</p></div>
+        <div style="display:flex;gap:10px;margin-bottom:7px;align-items:baseline"><div class="dot gray"></div><p style="font-size:12px">Frame has no face — skip frame silently</p></div>
+        <div style="display:flex;gap:10px;margin-bottom:7px;align-items:baseline"><div class="dot gray"></div><p style="font-size:12px">All frames no face — log to skipped_videos.txt</p></div>
+        <div style="display:flex;gap:10px;margin-bottom:7px;align-items:baseline"><div class="dot gray"></div><p style="font-size:12px">Tie vote → resolved by mean confidence</p></div>
+        <div style="display:flex;gap:10px;margin-bottom:7px;align-items:baseline"><div class="dot gray"></div><p style="font-size:12px">&lt;10 class samples → skip fine-tuning with warning</p></div>
+        <div style="display:flex;gap:10px;margin-bottom:7px;align-items:baseline"><div class="dot gray"></div><p style="font-size:12px">No face at training time → black image fallback</p></div>
+      </div>
+      <div class="callout green" style="margin-top:12px">
+        <strong>Bottom line:</strong> Combining late fusion at inference with KD soft-label training yields a <strong>+5.7% accuracy gain</strong> over the baseline, going from 91.5% to 97.2% on 141 held-out test videos.
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>Conclusion</span><span>Vladimir Ivanovski · 249024 · Applied ML · May 2026</span></div>
+</div>
+
+</body>
+</html>

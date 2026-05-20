@@ -1,0 +1,30 @@
+============================================================
+GENDER CLASSIFICATION -- EVALUATION RESULTS
+============================================================
+
+[BASELINE]
+  Accuracy         : 0.9149
+  F1 (weighted)    : 0.9150
+  Files skipped    : 0
+  Samples evaluated: 141
+  Confusion matrix (rows=true, cols=pred):
+                         Pred female   Pred male
+  True female                     72           7
+  True male                        5          57
+
+[FINE_TUNED]
+  Accuracy         : 0.8794
+  F1 (weighted)    : 0.8797
+  Files skipped    : 0
+  Samples evaluated: 141
+  Confusion matrix (rows=true, cols=pred):
+                         Pred female   Pred male
+  True female                     69          10
+  True male                        7          55
+
+[IMPROVEMENT after fine-tuning]
+  Accuracy delta   : -0.0355
+  F1 delta         : -0.0353
+
+[BEST THRESHOLD USED]: 0.7
+============================================================
