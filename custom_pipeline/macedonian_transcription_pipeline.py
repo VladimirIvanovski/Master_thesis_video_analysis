@@ -172,7 +172,7 @@ def main():
 
     # Step 2: Download + extract (Ray)
     print("\n[2/4] Downloading videos + extracting audio & frames (Ray)...")
-    ray.init(ignore_reinit_error=True)
+    ray.init(ignore_reinit_error=True, include_dashboard=False, log_to_driver=False)
 
     download_futures = []
     for url, vid, creator, video_path, audio_path, frames_dir in video_meta:
