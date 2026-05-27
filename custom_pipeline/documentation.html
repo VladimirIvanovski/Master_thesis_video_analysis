@@ -302,38 +302,36 @@
 
   <hr>
 
-  <!-- 7. Context: Gender Classification Results -->
-  <h2>7. Context — Gender Classification Results (Main Pipeline)</h2>
+  <!-- 7. Repository -->
+  <h2>7. Repository</h2>
   <p>
-    The broader pipeline this module extends includes an image-based gender classification component
-    applied across all 933 TikTok creator videos. Results from that component provide context for
-    the quality and reliability of the overall system.
+    The full source code for this pipeline, including all scripts, documentation, and sample
+    transcriptions, is available on GitHub on the dedicated branch:
   </p>
 
-  <div class="stats">
-    <div class="stat"><div class="stat-val">933</div><div class="stat-lbl">Videos processed</div></div>
-    <div class="stat"><div class="stat-val">91.5%</div><div class="stat-lbl">Baseline accuracy (v1)</div></div>
-    <div class="stat"><div class="stat-val green">97.2%</div><div class="stat-lbl">KD + Late Fusion (v2)</div></div>
-    <div class="stat"><div class="stat-val green">+5.7%</div><div class="stat-lbl">Improvement over baseline</div></div>
+  <div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:16px 20px;margin:14px 0;font-size:13px">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:6px">GitHub Repository</div>
+    <a href="https://github.com/VladimirIvanovski/Master_thesis_video_analysis/tree/macedonian-tiktok-transcription-pipeline"
+       style="color:#2563eb;font-weight:600;word-break:break-all;font-size:13.5px">
+      https://github.com/VladimirIvanovski/Master_thesis_video_analysis/tree/macedonian-tiktok-transcription-pipeline
+    </a>
+    <div style="margin-top:10px;font-size:12px;color:#475569">
+      <strong>Branch:</strong> macedonian-tiktok-transcription-pipeline &nbsp;·&nbsp;
+      <strong>Module:</strong> custom_pipeline/ &nbsp;·&nbsp;
+      <strong>Author:</strong> Vladimir Ivanovski (Index 249024)
+    </div>
   </div>
 
   <table style="margin-top:8px">
-    <thead><tr><th>Method</th><th>Accuracy</th><th>F1 (weighted)</th><th>vs Baseline</th></tr></thead>
+    <thead><tr><th>File</th><th>Description</th></tr></thead>
     <tbody>
-      <tr class="bad"><td>v1: Hard-label fine-tuned (thresh=0.70)</td><td>87.9%</td><td>88.0%</td><td style="color:#dc2626">−3.6%</td></tr>
-      <tr><td>v1: Baseline + Majority Vote</td><td>91.5%</td><td>91.5%</td><td>—</td></tr>
-      <tr class="best"><td>v2: KD Fine-tuned + Late Fusion</td><td>97.2%</td><td>97.2%</td><td style="color:#16a34a">+5.7%</td></tr>
+      <tr><td><code>run_custom.py</code></td><td>Main pipeline script — edit <code>URLS</code> list and run</td></tr>
+      <tr><td><code>documentation.html / .pdf</code></td><td>Full technical documentation with benchmark data</td></tr>
+      <tr><td><code>README.md</code></td><td>Quick start guide and configuration reference</td></tr>
+      <tr><td><code>transcriptions/&lt;video_id&gt;.txt</code></td><td>Whisper large output per video (Macedonian)</td></tr>
+      <tr><td><code>videos/&lt;creator&gt;/&lt;video_id&gt;/</code></td><td>Downloaded MP4, WAV audio, and extracted PNG frames</td></tr>
     </tbody>
   </table>
-
-  <p style="margin-top:10px;font-size:12.5px;color:#475569">
-    Evaluation on 141 held-out test videos. Gender classification uses MTCNN face detection on the
-    first 4 frames per video and a Vision Transformer (ViT) classifier
-    (<code>dima806/man_woman_face_image_detection</code>, 98.7% benchmark accuracy on clean faces).
-    The v2 improvement comes from Knowledge Distillation (soft pseudo-labels, KL divergence loss,
-    temperature T=3) combined with Late Fusion at inference (summing softmax probabilities across
-    frames rather than majority vote).
-  </p>
 
   <div class="footer">
     Vladimir Ivanovski &nbsp;·&nbsp; Index 249024 &nbsp;·&nbsp; TikTok Video Analysis Pipeline &nbsp;·&nbsp; May 2026
