@@ -1,44 +1,108 @@
-# Custom Pipeline
+# Custom Macedonian TikTok Transcription Pipeline
 
-Run the full video pipeline (download → frames → audio → transcription) for specific TikTok video IDs.
+A standalone extension of the main TikTok creator analysis pipeline for targeted processing of **Macedonian-language TikTok videos**.
 
-## Usage
+Given a list of TikTok URLs, this pipeline will:
+1. **Download** the video (`yt-dlp`)
+2. **Extract frames** — 1 frame/sec from seconds 1–10 (FFmpeg)
+3. **Extract audio** — 16kHz mono WAV (FFmpeg)
+4. **Transcribe** — `openai-whisper large`, language locked to Macedonian (`mk`)
 
-1. Open `run_custom.py`
-2. Add your videos as `(username, video_id)` pairs to the `VIDEOS` list at the top:
+All output is isolated in `custom_pipeline/` — the main pipeline is never touched.
+
+---
+
+## Quick Start
+
+### 1. Install dependencies
+
+```bash
+pip install ray openai-whisper yt-dlp
+```
+
+FFmpeg must be installed and available on `PATH`.
+
+### 2. Add your TikTok URLs
+
+Open `run_custom.py` and add full TikTok URLs to the `URLS` list:
 
 ```python
-VIDEOS = [
-    ("therock", "7123456789012345678"),
-    ("charlidamelio", "7234567890123456789"),
+URLS = [
+    "https://www.tiktok.com/@dinevv/video/7596645699547106571",
+    "https://www.tiktok.com/@someuser/video/7234567890123456789",
 ]
 ```
 
-3. Run from the project root:
+### 3. Run
 
 ```bash
+cd C:\Users\vladimir\PyCharmMiscProject
 python custom_pipeline/run_custom.py
 ```
 
-## Output structure
+---
+
+## Output Structure
 
 ```
 custom_pipeline/
   videos/
     <creator>/
       <video_id>/
-        <video_id>.mp4
-        <video_id>.wav
+        <video_id>.mp4       ← downloaded video
+        <video_id>.wav       ← 16kHz mono audio
         frames/
           <video_id>_frame_01.png
-          ...
+          ...                ← up to 10 frames
   transcriptions/
-    <video_id>.txt     ← one file per video
+    <video_id>.txt           ← Whisper transcription (Macedonian)
 ```
 
-## Notes
+---
 
-- The script auto-resolves the creator username from TikTok using yt-dlp.
-- All steps are checkpointed: if a file already exists it won't re-download/re-extract.
-- The main pipeline (`results_4/`, `transcriptions/`) is **not touched**.
-- Requires Ray, faster-whisper, ffmpeg, and yt-dlp to be installed.
+## Configuration
+
+All settings are at the top of `run_custom.py`:
+
+| Parameter | Default | Description |
+|---|---|---|
+| `URLS` | — | List of full TikTok URLs to process |
+| `WHISPER_MODEL_SIZE` | `"large"` | Model size: `tiny` / `small` / `medium` / `large` / `large-v3` |
+| `DEVICE` | `"cuda"` | Use `"cpu"` if no GPU available |
+
+To use the strongest available model:
+```python
+WHISPER_MODEL_SIZE = "large-v3"
+```
+
+---
+
+## Why `large` instead of `tiny`/`small`?
+
+For Macedonian — a lower-resource language — smaller models produce frequent word substitutions and dropped phrases on conversational audio:
+
+| Model | Multilingual WER | Reverb penalty |
+|---|---|---|
+| tiny | ~12% | +15.5 pp |
+| small | ~7% | +7.4 pp |
+| medium | ~5% | +5.9 pp |
+| **large** ← used | **~4%** | **+2.3 pp** |
+
+Sources: [OpenWhispr benchmarks](https://openwhispr.com/blog/whisper-model-sizes-explained) · [Whisper-RIR-Mega, arXiv 2026](https://arxiv.org/abs/2603.02252)
+
+---
+
+## Checkpointing
+
+Each step checks if output already exists before running:
+- Video already downloaded → skip download
+- WAV already extracted → skip audio extraction
+- Frames already exist → skip frame extraction
+
+To re-run a specific step, delete its output file and re-run the script.
+
+---
+
+## Repository
+
+[VladimirIvanovski/Master_thesis_video_analysis — macedonian-tiktok-transcription-pipeline](https://github.com/VladimirIvanovski/Master_thesis_video_analysis/tree/macedonian-tiktok-transcription-pipeline)
