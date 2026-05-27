@@ -24,7 +24,7 @@ FFmpeg must be installed and available on `PATH`.
 
 ### 2. Add your TikTok URLs
 
-Open `run_custom.py` and add full TikTok URLs to the `URLS` list:
+Open `macedonian_transcription_pipeline.py` and add full TikTok URLs to the `URLS` list:
 
 ```python
 URLS = [
@@ -37,7 +37,7 @@ URLS = [
 
 ```bash
 cd C:\Users\vladimir\PyCharmMiscProject
-python custom_pipeline/run_custom.py
+python custom_pipeline/macedonian_transcription_pipeline.py
 ```
 
 ---
@@ -70,6 +70,8 @@ All settings are at the top of `run_custom.py`:
 | `WHISPER_MODEL_SIZE` | `"large"` | Model size: `tiny` / `small` / `medium` / `large` / `large-v3` |
 | `DEVICE` | `"cuda"` | Use `"cpu"` if no GPU available |
 
+All settings are at the top of `macedonian_transcription_pipeline.py`.
+
 To use the strongest available model:
 ```python
 WHISPER_MODEL_SIZE = "large-v3"
@@ -99,7 +101,7 @@ Each step checks if output already exists before running:
 - WAV already extracted → skip audio extraction
 - Frames already exist → skip frame extraction
 
-To re-run a specific step, delete its output file and re-run the script.
+To re-run a specific step, delete its output file and re-run `macedonian_transcription_pipeline.py`.
 
 ---
 
