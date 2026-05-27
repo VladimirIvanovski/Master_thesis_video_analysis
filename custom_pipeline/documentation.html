@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Custom Macedonian Pipeline — Documentation</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13.5px; line-height: 1.7; color: #1a1a1a; background: #fff; }
+  .page { max-width: 820px; margin: 0 auto; padding: 52px 64px; }
+  h1 { font-size: 22px; font-weight: 700; line-height: 1.25; margin-bottom: 6px; }
+  h2 { font-size: 16px; font-weight: 700; margin: 36px 0 10px; border-bottom: 2px solid #2563eb; padding-bottom: 5px; color: #1e3a8a; }
+  h3 { font-size: 13.5px; font-weight: 600; margin: 18px 0 6px; color: #1e3a8a; }
+  p  { margin-bottom: 10px; }
+  code { font-family: Consolas, monospace; background: #f1f5f9; padding: 1px 6px; border-radius: 3px; font-size: 12px; }
+  pre { font-family: Consolas, monospace; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; padding: 12px 16px; font-size: 12px; line-height: 1.6; margin: 12px 0; overflow-x: auto; }
+  hr { border: none; border-top: 1px solid #e2e8f0; margin: 32px 0; }
+  .title-block { border-bottom: 2.5px solid #2563eb; padding-bottom: 20px; margin-bottom: 4px; }
+  .meta { display: flex; gap: 40px; margin-top: 10px; font-size: 12px; color: #64748b; }
+  .stats { display: flex; gap: 14px; margin: 18px 0; }
+  .stat { flex: 1; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 700; color: #2563eb; line-height: 1.1; }
+  .stat-val.green { color: #16a34a; }
+  .stat-val.red   { color: #dc2626; }
+  .stat-lbl { font-size: 11px; color: #64748b; margin-top: 3px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 12px 0; }
+  th { background: #f1f5f9; padding: 8px 12px; text-align: left; font-weight: 600; border-bottom: 1.5px solid #cbd5e1; }
+  td { padding: 7px 12px; border-bottom: 1px solid #e2e8f0; }
+  tr.best td { background: #f0fdf4; font-weight: 600; }
+  tr.bad  td { background: #fef2f2; }
+  .callout { background: #eff6ff; border-left: 3px solid #2563eb; padding: 12px 16px; border-radius: 0 4px 4px 0; margin: 14px 0; font-size: 13px; }
+  .callout.green { background: #f0fdf4; border-color: #16a34a; }
+  .callout.yellow { background: #fefce8; border-color: #d97706; }
+  .step { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; }
+  .step-num { min-width: 30px; height: 30px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .footer { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 48px; border-top: 1px solid #e2e8f0; padding-top: 14px; }
+  .label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
+  @media print { body { background: #fff; } .page { padding: 32px 48px; } @page { size: A4; margin: 12mm 14mm; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Title -->
+  <div class="title-block">
+    <p class="label">Technical Documentation — TikTok Video Analysis Pipeline</p>
+    <h1 style="margin-top:8px">Custom Macedonian Video Processing Pipeline</h1>
+    <p style="color:#475569;margin-top:6px;font-size:13px">
+      A specialised extension of the main TikTok creator analysis pipeline, designed for targeted
+      processing of Macedonian-language TikTok videos: download, frame extraction, audio extraction,
+      and high-accuracy Whisper transcription.
+    </p>
+    <div class="meta">
+      <span><strong>Author:</strong> Vladimir Ivanovski &nbsp;·&nbsp; Index 249024</span>
+      <span><strong>Module:</strong> custom_pipeline/run_custom.py</span>
+      <span><strong>Date:</strong> May 2026</span>
+      <span><strong>GitHub:</strong> <a href="https://github.com/VladimirIvanovski/Master_thesis_video_analysis" style="color:#2563eb">VladimirIvanovski/Master_thesis_video_analysis</a></span>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- 1. Overview -->
+  <h2>1. Overview</h2>
+  <p>
+    The main pipeline processes hundreds of TikTok creators in bulk, downloading up to 3 videos per
+    creator, extracting frames and audio, transcribing with <code>faster-whisper (tiny)</code>, and
+    indexing into Elasticsearch and FAISS for semantic search.
+  </p>
+  <p>
+    The <strong>custom pipeline</strong> is a focused, standalone extension for scenarios where you
+    need to process a specific set of videos with higher quality — in particular, Macedonian-language
+    content that benefits from a larger, language-locked Whisper model.
+    It is fully isolated: all output is stored under <code>custom_pipeline/</code> and
+    <strong>nothing in the main pipeline is modified</strong>.
+  </p>
+
+  <div class="callout green">
+    <strong>Key difference from the main pipeline:</strong> Uses <code>openai-whisper large</code>
+    with <code>language="mk"</code> (Macedonian) instead of <code>faster-whisper tiny</code> with
+    auto language detection — significantly more accurate for Macedonian speech.
+  </div>
+
+  <hr>
+
+  <!-- 2. Pipeline Steps -->
+  <h2>2. Pipeline Steps</h2>
+  <p>The pipeline executes four sequential stages. Ray is used for parallel execution of CPU-bound tasks.</p>
+
+  <div style="margin-top:16px">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <h3 style="margin:0 0 4px">URL Parsing</h3>
+        <p style="margin:0;font-size:13px">
+          Each full TikTok URL (e.g. <code>https://www.tiktok.com/@dinevv/video/7596645699547106571</code>)
+          is parsed using a regex to extract the <strong>creator username</strong> and <strong>video ID</strong>.
+          No external API calls or network requests are needed at this stage.
+          Invalid URLs are skipped with a warning.
+        </p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <h3 style="margin:0 0 4px">Download (Ray, parallel)</h3>
+        <p style="margin:0;font-size:13px">
+          Each video is downloaded as <code>.mp4</code> using <code>yt-dlp</code> via a
+          <code>@ray.remote</code> task. Downloads are retried up to 4 times on failure.
+          If the file already exists it is skipped (checkpointing).
+          Output: <code>custom_pipeline/videos/&lt;creator&gt;/&lt;video_id&gt;/&lt;video_id&gt;.mp4</code>
+        </p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <h3 style="margin:0 0 4px">Audio &amp; Frame Extraction (Ray, parallel)</h3>
+        <p style="margin:0;font-size:13px">
+          Two parallel Ray tasks run per video after download completes:
+        </p>
+        <ul style="font-size:13px;padding-left:20px;margin-top:6px">
+          <li><strong>Audio:</strong> FFmpeg strips the audio track and encodes it as 16kHz mono PCM WAV — the exact format required by Whisper.</li>
+          <li><strong>Frames:</strong> FFmpeg extracts 1 frame per second from seconds 1–10, saving up to 10 PNG images. These can be used for visual analysis or gender classification.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>
+        <h3 style="margin:0 0 4px">Transcription (Ray GPU Actor, Whisper large)</h3>
+        <p style="margin:0;font-size:13px">
+          A Ray GPU Actor loads <code>openai-whisper large</code> once into VRAM and processes all
+          audio files sequentially. The language is locked to <code>"mk"</code> (Macedonian ISO-639-1),
+          eliminating language detection overhead and maximising transcription accuracy.
+          Each transcription is saved as a plain text file:
+          <code>custom_pipeline/transcriptions/&lt;video_id&gt;.txt</code>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- 3. Output Structure -->
+  <h2>3. Output Structure</h2>
+  <pre>custom_pipeline/
+  run_custom.py            ← main script (edit URLS list here)
+  documentation.html       ← this document
+  videos/
+    &lt;creator&gt;/
+      &lt;video_id&gt;/
+        &lt;video_id&gt;.mp4    ← downloaded video
+        &lt;video_id&gt;.wav    ← 16kHz mono audio
+        frames/
+          &lt;video_id&gt;_frame_01.png
+          &lt;video_id&gt;_frame_02.png
+          ...              ← up to 10 frames
+  transcriptions/
+    &lt;video_id&gt;.txt        ← Whisper transcription (Macedonian)</pre>
+
+  <hr>
+
+  <!-- 4. Configuration -->
+  <h2>4. Configuration</h2>
+  <p>All configuration lives at the top of <code>run_custom.py</code>. The only required edit is the <code>URLS</code> list.</p>
+
+  <table>
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>URLS</code></td><td>—</td><td>List of full TikTok URLs to process</td></tr>
+      <tr><td><code>WHISPER_MODEL_SIZE</code></td><td><code>"large"</code></td><td>Whisper model size: tiny / base / small / medium / large / large-v3</td></tr>
+      <tr><td><code>DEVICE</code></td><td><code>"cuda"</code></td><td>Compute device for Whisper — use <code>"cpu"</code> if no GPU available</td></tr>
+      <tr><td><code>language</code></td><td><code>"mk"</code></td><td>ISO-639-1 language code passed to Whisper (Macedonian)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Adding videos</h3>
+  <pre>URLS = [
+    "https://www.tiktok.com/@dinevv/video/7596645699547106571",
+    "https://www.tiktok.com/@someuser/video/7234567890123456789",
+    # Add as many as needed...
+]</pre>
+
+  <h3>Upgrading to the strongest model</h3>
+  <pre>WHISPER_MODEL_SIZE = "large-v3"   # latest, ~3GB, best accuracy for Macedonian</pre>
+
+  <hr>
+
+  <!-- 5. Technology Stack -->
+  <h2>5. Technology Stack</h2>
+  <table>
+    <thead><tr><th>Component</th><th>Library / Tool</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td>Distributed execution</td><td>Ray</td><td>Parallel download and extraction tasks; GPU Actor for Whisper</td></tr>
+      <tr><td>Video download</td><td>yt-dlp</td><td>Downloads TikTok videos from public URLs</td></tr>
+      <tr><td>Audio extraction</td><td>FFmpeg</td><td>Converts video to 16kHz mono WAV</td></tr>
+      <tr><td>Frame extraction</td><td>FFmpeg</td><td>Extracts PNG frames at 1fps from first 10 seconds</td></tr>
+      <tr><td>Transcription</td><td>openai-whisper</td><td>Large model (1.5B parameters), language-locked to Macedonian</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout yellow">
+    <strong>Why Ray?</strong> Downloads and extractions are I/O-bound and independent per video —
+    Ray parallelises them automatically across CPU cores. The Whisper Actor pattern ensures the 
+    large model is loaded into GPU memory exactly once, regardless of how many videos are processed.
+  </div>
+
+  <hr>
+
+  <!-- 6. Whisper Model Comparison -->
+  <h2>6. Whisper Model Selection &amp; Benchmark Results</h2>
+  <p>
+    The main pipeline uses <code>faster-whisper tiny</code> (39M parameters) for bulk throughput
+    across hundreds of creators. During development of this custom module, <strong>tiny</strong> and
+    <strong>small</strong> were both tested on Macedonian audio and found to produce frequent
+    word substitutions and dropped phrases — particularly on conversational speech. This pipeline
+    therefore uses <code>openai-whisper large</code> (1.5B parameters), trading speed for
+    substantially higher accuracy.
+  </p>
+
+  <h3>Word Error Rate (WER) — Published Benchmarks</h3>
+  <p style="font-size:12px;color:#475569;margin-bottom:8px">
+    Sources: OpenWhispr benchmark summary (openwhispr.com), VexaScribe real-world evaluation
+    (novascribe.ai), Whisper-RIR-Mega reverberant speech benchmark (arxiv.org/2603.02252, 2026).
+    WER = (substitutions + deletions + insertions) / total words. Lower is better.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Model</th><th>Params</th><th>VRAM</th>
+        <th>English WER (clean)</th><th>Multilingual WER</th>
+        <th>Reverb penalty (Δ WER)</th><th>Speed vs large</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="bad">
+        <td>tiny</td><td>39M</td><td>~1 GB</td>
+        <td>~7.6 – 15%</td><td>~12%</td>
+        <td style="color:#dc2626">+15.5 pp</td><td>~32×</td>
+      </tr>
+      <tr class="bad">
+        <td>small</td><td>244M</td><td>~2 GB</td>
+        <td>~3.4 – 9%</td><td>~7%</td>
+        <td style="color:#dc2626">+7.4 pp</td><td>~6×</td>
+      </tr>
+      <tr>
+        <td>medium</td><td>769M</td><td>~5 GB</td>
+        <td>~2.9 – 6%</td><td>~5%</td>
+        <td>+5.9 pp</td><td>~2×</td>
+      </tr>
+      <tr class="best">
+        <td><strong>large</strong> ← used here</td><td>1.5B</td><td>~10 GB</td>
+        <td>~2.7 – 5%</td><td>~4%</td>
+        <td style="color:#16a34a">+2.3 pp</td><td>1×</td>
+      </tr>
+      <tr class="best">
+        <td>large-v3</td><td>1.5B</td><td>~10 GB</td>
+        <td>~2.4%</td><td>~3.5%</td>
+        <td style="color:#16a34a">+2.3 pp</td><td>1×</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="stats" style="margin-top:18px">
+    <div class="stat"><div class="stat-val red">~12%</div><div class="stat-lbl">tiny multilingual WER</div></div>
+    <div class="stat"><div class="stat-val red">~7%</div><div class="stat-lbl">small multilingual WER</div></div>
+    <div class="stat"><div class="stat-val green">~4%</div><div class="stat-lbl">large multilingual WER</div></div>
+    <div class="stat"><div class="stat-val green">3×</div><div class="stat-lbl">large vs tiny accuracy gain</div></div>
+  </div>
+
+  <h3 style="margin-top:20px">Why tiny and small were insufficient</h3>
+  <p>
+    The reverberant speech benchmark (Whisper-RIR-Mega, 2026) quantifies how badly each model
+    degrades when audio quality drops — typical for phone-recorded TikTok videos.
+    <code>tiny</code> loses <strong>+15.5 percentage points of WER</strong> under reverberation,
+    while <code>large</code> loses only <strong>+2.3 pp</strong>. For a lower-resource language
+    like Macedonian — which has less training data than English — the gap widens further.
+    In practice, tiny and small produced intelligible but incomplete transcripts with frequent
+    dropped words on conversational Macedonian audio; large produced near-complete transcripts.
+  </p>
+
+  <h3>Why medium was not chosen</h3>
+  <p>
+    Medium (769M parameters) achieves ~5% multilingual WER — a meaningful improvement over small,
+    but still approximately <strong>25% more errors than large</strong> on multilingual benchmarks.
+    Given that GPU VRAM is not a bottleneck in this setup and batch sizes are small (targeted
+    per-video processing rather than bulk), the accuracy gain of large over medium justifies
+    the additional compute. Large also shows significantly better robustness to audio noise
+    (+5.9 pp vs +2.3 pp reverb penalty).
+  </p>
+
+  <div class="callout green">
+    <strong>Conclusion:</strong> For Macedonian TikTok videos — conversational speech, phone
+    microphone quality, lower-resource language — <code>openai-whisper large</code> is the
+    minimum recommended model. <code>large-v3</code> further reduces multilingual WER by
+    ~12% relative and is the recommended upgrade for maximum accuracy.
+  </div>
+
+  <hr>
+
+  <!-- 7. Context: Gender Classification Results -->
+  <h2>7. Context — Gender Classification Results (Main Pipeline)</h2>
+  <p>
+    The broader pipeline this module extends includes an image-based gender classification component
+    applied across all 933 TikTok creator videos. Results from that component provide context for
+    the quality and reliability of the overall system.
+  </p>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-val">933</div><div class="stat-lbl">Videos processed</div></div>
+    <div class="stat"><div class="stat-val">91.5%</div><div class="stat-lbl">Baseline accuracy (v1)</div></div>
+    <div class="stat"><div class="stat-val green">97.2%</div><div class="stat-lbl">KD + Late Fusion (v2)</div></div>
+    <div class="stat"><div class="stat-val green">+5.7%</div><div class="stat-lbl">Improvement over baseline</div></div>
+  </div>
+
+  <table style="margin-top:8px">
+    <thead><tr><th>Method</th><th>Accuracy</th><th>F1 (weighted)</th><th>vs Baseline</th></tr></thead>
+    <tbody>
+      <tr class="bad"><td>v1: Hard-label fine-tuned (thresh=0.70)</td><td>87.9%</td><td>88.0%</td><td style="color:#dc2626">−3.6%</td></tr>
+      <tr><td>v1: Baseline + Majority Vote</td><td>91.5%</td><td>91.5%</td><td>—</td></tr>
+      <tr class="best"><td>v2: KD Fine-tuned + Late Fusion</td><td>97.2%</td><td>97.2%</td><td style="color:#16a34a">+5.7%</td></tr>
+    </tbody>
+  </table>
+
+  <p style="margin-top:10px;font-size:12.5px;color:#475569">
+    Evaluation on 141 held-out test videos. Gender classification uses MTCNN face detection on the
+    first 4 frames per video and a Vision Transformer (ViT) classifier
+    (<code>dima806/man_woman_face_image_detection</code>, 98.7% benchmark accuracy on clean faces).
+    The v2 improvement comes from Knowledge Distillation (soft pseudo-labels, KL divergence loss,
+    temperature T=3) combined with Late Fusion at inference (summing softmax probabilities across
+    frames rather than majority vote).
+  </p>
+
+  <div class="footer">
+    Vladimir Ivanovski &nbsp;·&nbsp; Index 249024 &nbsp;·&nbsp; TikTok Video Analysis Pipeline &nbsp;·&nbsp; May 2026
+  </div>
+
+</div>
+</body>
+</html>
