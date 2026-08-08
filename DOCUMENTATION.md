@@ -259,6 +259,31 @@ python flask_apps/demo_app.py
 
 ---
 
+## 6.5 Data visibility and storage (Elasticsearch)
+
+Batch processing in Ray is **ephemeral** during a run; **Elasticsearch** provides **durable storage** so data remains **visible** after jobs finish: queryable fields, document counts, and optional UI (Kibana / Dev Tools / REST).
+
+| Index | Role | Main fields (columns) |
+|-------|------|------------------------|
+| `creator_transcriptions` | Searchable creators + vectors | `username` (keyword), `transcription` (text), `image_embedding` / `text_embedding` / `combined_embedding` (dense_vector, 512d, cosine), `follower_count`, `video_count`, `indexed_at` (date) |
+| `user_interactions` | Flask demo feedback | `username`, `liked_creator`, `query_context`, `label`, `timestamp` |
+
+**List columns and counts in the terminal:**
+
+```bash
+python elastic_search_files/print_es_columns.py
+```
+
+**Sample documents (transcriptions index):**
+
+```bash
+python elastic_search_files/query_elastic_search.py
+```
+
+Requires Docker Elasticsearch on `localhost:9200` (see project setup). For a **GUI screenshot**, use **Kibana** Discover or browser `GET /index/_search?pretty` if your cluster exposes it.
+
+---
+
 ## 11. Key Conclusions
 
 1. **Ray enables horizontal CPU scaling** — adding workers directly reduces Stage 2 (Whisper transcription) time with near-linear improvement up to the number of available audio files.

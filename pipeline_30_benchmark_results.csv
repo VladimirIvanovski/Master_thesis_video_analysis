@@ -1,0 +1,4 @@
+s1_workers,n_videos,n_creators,s1_s2_wall_s,s3_wall_s,total_wall_s,throughput_vps
+8,50,20,50.3,50.34,100.64,0.497
+12,50,20,55.46,50.42,105.88,0.472
+16,50,20,57.71,49.01,106.72,0.469

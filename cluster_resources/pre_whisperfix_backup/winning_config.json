@@ -1,0 +1,6 @@
+{
+  "config": "visual_only",
+  "image_weight": 1.0,
+  "text_weight": 0.0,
+  "avg_precision_at_10": 0.32
+}

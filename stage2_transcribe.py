@@ -85,12 +85,19 @@ class GPUWhisperActor:
         from faster_whisper.transcribe import TranscriptionOptions, get_suppressed_tokens
 
         return TranscriptionOptions(
-            beam_size=1,
+            # beam_size=1 + no repetition guard was the fastest greedy-decoding
+            # config, but it made the model highly prone to getting stuck in
+            # repetition loops on music/near-silent audio (e.g. the same phrase
+            # repeated 40+ times). BatchedInferencePipeline does not support
+            # Whisper's temperature-fallback retry, but it does respect these
+            # three knobs, so they are the cheapest way to curb repetition loops
+            # while staying on the batched (fast) code path.
+            beam_size=5,
             best_of=1,
             patience=1,
             length_penalty=1,
-            repetition_penalty=1,
-            no_repeat_ngram_size=0,
+            repetition_penalty=1.3,
+            no_repeat_ngram_size=3,
             log_prob_threshold=-1.0,
             no_speech_threshold=0.6,
             compression_ratio_threshold=2.4,
@@ -101,12 +108,31 @@ class GPUWhisperActor:
             prefix=None,
             suppress_blank=True,
             suppress_tokens=get_suppressed_tokens(tokenizer, [-1]),
-            without_timestamps=True,
-            max_initial_timestamp=0.0,
+            # without_timestamps=True forces the model to decode a full dense
+            # 30s chunk as one continuous block of text with no internal
+            # checkpoints, which causes severe truncation/failure on
+            # information-dense speech (measured: a 30s chunk full of clear
+            # speech decoded to just "Oh, yeah" with timestamps off, vs. the
+            # full correct transcript with timestamps on). Enabling timestamps
+            # lets the model self-segment into natural sub-segments, which
+            # forward()/_split_segments_by_timestamps already knows how to
+            # stitch back into one chunk_text per chunk.
+            without_timestamps=False,
+            max_initial_timestamp=1.0,
             word_timestamps=False,
             prepend_punctuations="\"'“¿([{-",
             append_punctuations="\"'.。,，!！?？:：”)]}、",
-            multilingual=False,
+            # CRITICAL FIX: _ensure_tokenizer() below detects the spoken language
+            # only ONCE, from the very first audio chunk the actor ever sees, then
+            # caches and reuses that single language's tokenizer for every
+            # subsequent video from every subsequent creator for the actor's
+            # entire lifetime (actors are long-lived by design). With
+            # multilingual=True, generate_segment_batched() instead detects the
+            # language independently for every item in the batch and swaps in
+            # the correct language token per item, so mixed-language batches are
+            # transcribed correctly instead of being forced through one
+            # arbitrary, globally "stuck" language.
+            multilingual=True,
             max_new_tokens=None,
             clip_timestamps=[],
             hallucination_silence_threshold=None,
@@ -137,49 +163,72 @@ class GPUWhisperActor:
             language=self._language,
         )
 
-    def _pcm_to_chunks(self, audio_pcm: bytes) -> list[tuple[np.ndarray, dict]]:
+    def _windowed_chunks(self, audio: np.ndarray) -> list[tuple[np.ndarray, dict]]:
+        """
+        Split raw audio into fixed-size, non-overlapping windows of
+        `chunk_length` seconds each (30s), one Whisper input per window.
+
+        NOTE: this used to call faster_whisper.vad.collect_chunks(), but that
+        function is meant to MERGE a list of pre-detected VAD speech segments
+        into <=30s batches — not to split one giant "whole clip" range. Given
+        a single oversized range it emits a bogus, fully-empty first "chunk"
+        (which Whisper hallucinates on, e.g. "Rwy'n meddwl am ychydig") and
+        then pad_or_trim() silently discards all audio beyond the first 30s
+        of the real chunk. Manual fixed windowing avoids both problems.
+        """
         from faster_whisper.audio import pad_or_trim
-        from faster_whisper.vad import collect_chunks
 
-        if not audio_pcm:
+        if audio is None or audio.size == 0:
             return []
-
-        audio = pcm_bytes_to_float32(audio_pcm)
-        del audio_pcm
-
         sampling_rate = self.model.feature_extractor.sampling_rate
-        chunk_length = self.model.feature_extractor.chunk_length
-        clip_timestamps = [{"start": 0, "end": audio.shape[0]}]
-        audio_chunks, chunks_metadata = collect_chunks(
-            audio, clip_timestamps, max_duration=chunk_length
-        )
-        del audio
-        if not audio_chunks:
-            return []
-
+        window = int(self.model.feature_extractor.chunk_length * sampling_rate)
         out = []
-        for chunk, meta in zip(audio_chunks, chunks_metadata):
+        for start in range(0, audio.shape[0], window):
+            chunk = audio[start:start + window]
+            meta = {
+                "offset": start / sampling_rate,
+                "duration": chunk.shape[0] / sampling_rate,
+                "segments": [],
+            }
             feature = self.model.feature_extractor(chunk)[..., :-1]
             out.append((pad_or_trim(feature), meta))
         return out
 
-    def _audio_to_chunks(self, audio: np.ndarray) -> list[tuple[np.ndarray, dict]]:
-        from faster_whisper.audio import pad_or_trim
-        from faster_whisper.vad import collect_chunks
+    def _pcm_to_chunks(self, audio_pcm: bytes) -> list[tuple[np.ndarray, dict]]:
+        if not audio_pcm:
+            return []
+        audio = pcm_bytes_to_float32(audio_pcm)
+        del audio_pcm
+        return self._windowed_chunks(audio)
 
-        if audio is None or audio.size == 0:
-            return []
-        chunk_length = self.model.feature_extractor.chunk_length
-        clip_timestamps = [{"start": 0, "end": audio.shape[0]}]
-        audio_chunks, chunks_metadata = collect_chunks(
-            audio, clip_timestamps, max_duration=chunk_length
-        )
-        if not audio_chunks:
-            return []
-        return [
-            (pad_or_trim(self.model.feature_extractor(c)[..., :-1]), m)
-            for c, m in zip(audio_chunks, chunks_metadata)
-        ]
+    def _audio_to_chunks(self, audio: np.ndarray) -> list[tuple[np.ndarray, dict]]:
+        return self._windowed_chunks(audio)
+
+    @staticmethod
+    def _keep_segment(seg: dict, options) -> bool:
+        """
+        BatchedInferencePipeline.forward() computes no_speech_prob/avg_logprob/
+        compression_ratio per segment but never checks them against
+        options.{no_speech,log_prob,compression_ratio}_threshold — that
+        filtering only happens in the higher-level WhisperModel.transcribe(),
+        which this pipeline doesn't use. Apply the same checks manually so
+        near-silent/music-only chunks don't inject hallucinated text.
+        """
+        if options.no_speech_threshold is not None:
+            should_skip = seg["no_speech_prob"] > options.no_speech_threshold
+            if (
+                options.log_prob_threshold is not None
+                and seg["avg_logprob"] > options.log_prob_threshold
+            ):
+                should_skip = False
+            if should_skip:
+                return False
+        if (
+            options.compression_ratio_threshold is not None
+            and seg["compression_ratio"] > options.compression_ratio_threshold
+        ):
+            return False
+        return True
 
     def transcribe_batch_memory(self, items: list[dict]) -> dict:
         """
@@ -223,7 +272,8 @@ class GPUWhisperActor:
                 for witem, result in zip(batch_items, results):
                     mp4, chunk_idx, _, _ = witem
                     chunk_text = " ".join(
-                        seg["text"].strip() for seg in result if seg.get("text")
+                        seg["text"].strip() for seg in result
+                        if seg.get("text") and self._keep_segment(seg, options)
                     )
                     texts[mp4].append((chunk_idx, chunk_text))
 
@@ -275,7 +325,8 @@ class GPUWhisperActor:
                 for witem, result in zip(batch, results):
                     key, idx, _, _ = witem
                     texts[key].append((idx, " ".join(
-                        s["text"].strip() for s in result if s.get("text")
+                        s["text"].strip() for s in result
+                        if s.get("text") and self._keep_segment(s, options)
                     )))
 
         out = {}

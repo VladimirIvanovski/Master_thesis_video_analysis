@@ -22,10 +22,11 @@ from full_pipeline_benchmark import (
     start_web, upd, gst,
 )
 
-NUM_WORKERS = 8
+NUM_WORKERS  = 30
+TARGET_VIDEOS = 5000
 RESULTS_DIR = "results_4"
-OUT_CSV     = "large_scale_results.csv"
-OUT_CHART   = "large_scale_chart.png"
+OUT_CSV     = "5k_results.csv"
+OUT_CHART   = "5k_chart.png"
 
 
 def run_large(mp4_list: list, whisper, clip) -> dict:
@@ -267,12 +268,7 @@ def _download_to_target(target: int = 1000):
 
 def main():
     start_web()
-    ray.init(
-        include_dashboard=True, dashboard_host="0.0.0.0",
-        ignore_reinit_error=True,
-        num_cpus=os.cpu_count(),
-        num_gpus=1 if torch.cuda.is_available() else 0,
-    )
+    ray.init(address="auto", ignore_reinit_error=True)
     print(f"\n  Ray ready  |  {ray.cluster_resources()}")
     print(f"  Ray Dashboard  http://localhost:8265")
     print(f"  Live progress  http://localhost:8888\n")
@@ -281,17 +277,21 @@ def main():
     print("=" * 55)
     print("  STEP 0 — Checking video count / downloading if needed")
     print("=" * 55)
-    _download_to_target(target=1000)
+    _download_to_target(target=0)  # skip download, use existing videos
 
-    # Collect all mp4 files
-    all_mp4s = []
+    # Collect all mp4 files and repeat to reach TARGET_VIDEOS
+    real_mp4s = []
     for creator in sorted(os.listdir(RESULTS_DIR)):
         cdir = os.path.join(RESULTS_DIR, creator)
         if not os.path.isdir(cdir): continue
-        all_mp4s.extend(glob.glob(os.path.join(cdir, "*.mp4"))[:3])
+        real_mp4s.extend(glob.glob(os.path.join(cdir, "*.mp4"))[:3])
 
-    print(f"  Videos available : {len(all_mp4s)}")
-    print(f"  Workers          : {NUM_WORKERS} CPU + 1 GPU\n")
+    # Repeat list to reach target
+    all_mp4s = (real_mp4s * ((TARGET_VIDEOS // len(real_mp4s)) + 1))[:TARGET_VIDEOS]
+
+    print(f"  Real videos on disk : {len(real_mp4s)}")
+    print(f"  Tasks to process    : {len(all_mp4s)} (repeated to reach {TARGET_VIDEOS})")
+    print(f"  Workers             : {NUM_WORKERS} CPU + 1 GPU\n")
 
     print("  Loading GPU actors (Whisper + CLIP on CUDA)...")
     whisper = GPUWhisperActor.remote()

@@ -1,0 +1,294 @@
+TOTAL PARAGRAPHS: 465
+0	Ss. Cyril and Methodius University in Skopje
+1	Faculty of Computer Science and Engineering
+5	SCALABLE MULTIMODAL ANALYSIS OF TIKTOK VIDEOS
+USING EMBEDDINGS AND SIMILARITY SEARCH
+6	MASTER'S THESIS
+8	Candidate:  Vladimir Ivanovski  (Index No. 249024)
+
+Mentor:  prof. d-r Riste Stojanov
+
+Master Programme in Computer Science
+
+Skopje, 2026
+20	Abstract
+21	The explosive growth of TikTok has produced hundreds of millions of short-form videos worldwide. Extracting structured information from this content at scale — what is said, what is shown, and who is speaking — poses significant engineering and research challenges. Existing approaches either rely on a single modality or are too slow and expensive to process large collections of videos.
+22	This thesis presents a scalable multimodal pipeline for analyzing TikTok videos using both audio transcription and visual frame analysis, followed by vector embedding and semantic similarity search. The pipeline downloads videos using yt-dlp, extracts audio and keyframes in memory via FFmpeg (no intermediate WAV or image files during inference), transcribes speech with batched GPU Whisper (small model, 180 s audio cap), and generates 512-dimensional CLIP embeddings with batched cross-creator frame encoding. Embeddings are stored in a FAISS index and in Elasticsearch for fast approximate nearest-neighbor retrieval. The system is built on Ray, a distributed Python framework enabling horizontal scaling by changing a single line of configuration. Benchmarks show the streaming pipeline processed 1,000 TikTok videos from 357 creators in 9.1 minutes on a single GPU workstation (8 Stage-1 workers), achieving 1.84 videos per second — a 1.94x wall-clock speedup over the 2-worker baseline. A Flask-based demo application provides a semantic search interface where users type a natural language query and retrieve the most relevant TikTok creators, with optional personalization based on feedback stored in Elasticsearch.
+23	Keywords: TikTok analysis, scalable pipeline, multimodal embeddings, CLIP, FAISS, Elasticsearch, distributed computing, Ray, semantic search, Whisper.
+36	Table of Contents
+37	Abstract	ii
+38	1  Introduction	1
+39	   1.1  Motivation	1
+40	   1.2  Problem Statement	2
+41	   1.3  Contributions	2
+42	   1.4  Thesis Structure	3
+43	1.5  Hypothesis	3
+44	2  Related Work	4
+45	   2.1  Short-Form Video Platforms and Content Analysis	4
+46	   2.2  Automatic Speech Recognition	4
+47	   2.3  Vision-Language Models and Multimodal Embeddings	5
+48	   2.4  Vector Similarity Search	5
+49	   2.5  Distributed Data Pipelines	6
+50	3  Theoretical Background	7
+51	   3.1  Multimodal Learning	7
+52	   3.2  Contrastive Language-Image Pretraining (CLIP)	7
+53	   3.3  Approximate Nearest-Neighbor Search and FAISS	8
+54	   3.4  Automatic Speech Recognition — Whisper	9
+55	   3.5  Distributed Computing with Ray	9
+56	   3.6  Elasticsearch Dense-Vector Search	10
+57	4  System Architecture and Design	11
+58	   4.1  Overview and Design Goals	11
+59	   4.2  Data Collection	12
+60	   4.3  Stage 1: Media Extraction	12
+61	   4.4  Stage 2: Audio Transcription	13
+62	   4.5  Stage 3: Multimodal Embedding	13
+63	   4.6  Vector Storage and Indexing	14
+64	   4.7  Semantic Search Demo Application	15
+65	   4.8  Personalized Search	15
+66	5  Implementation	17
+67	   5.1  Technology Stack	17
+68	   5.2  Distributed Pipeline with Ray	18
+69	   5.3  Embedding Generation	19
+70	   5.4  FAISS Index Construction	19
+71	   5.5  Elasticsearch Integration	20
+72	   5.6  Flask Demo Application	21
+73	   5.7  Multi-Server Scalability	21
+74	6  Evaluation and Results	23
+75	   6.1  Dataset	23
+76	   6.2  Scalability Benchmark	24
+77	   6.3  Large-Scale Run (1,000 Videos)	25
+78	   6.4  Search Quality	26
+79	6.5  Embedding Configuration and Clustering Analysis	27
+80	7  Conclusion and Future Work	28
+81	   7.1  Conclusion	28
+82	   7.2  Future Work	29
+83	References	31
+104	List of Tables
+105	Table 5.1  Technology stack	17
+106	Table 6.1  Dataset statistics	23
+107	Table 6.2  Scalability benchmark (20 creators, 50 videos)	24
+108	Table 6.3. Large-scale pipeline scalability results (1,000 videos, 357 creators)	25
+109	Table 6.4  Search quality evaluation	26
+110	Table 6.5  Average Precision@10 by embedding configuration	27
+111	Table 6.6  Silhouette score by number of clusters	27
+135	List of Figures
+136	Figure 4.1  High-level system architecture	11
+137	Figure 6.1  Speedup vs. number of CPU workers	24
+138	Figure 6.2  Precision@10 by embedding configuration	27
+139	Figure 6.3  Silhouette score vs. number of clusters	27
+140	Figure 6.4  2D PCA projection of creator embeddings by cluster	28
+141	Figure 6.5  Number of creators per cluster	28
+142	Figure 6.6  Percentage of top-10 results sharing the dominant cluster	28
+168	1  Introduction
+169	1.1  Motivation
+170	TikTok is one of the fastest-growing social media platforms in the world, with over one billion active users; industry estimates place daily uploads on the order of tens of millions of videos. Despite the platform's scale, the rich information embedded within TikTok videos — spoken words, visual style, and creator identity — remains largely inaccessible to downstream applications. Search on the platform is limited to hashtags and account names; no tool currently allows a user to type a natural language query and retrieve semantically matching creators. Montag et al. [1] survey psychological aspects of TikTok use and highlight the platform's unusually strong attention retention.
+171	The research challenge is therefore threefold: (1) how to automatically extract multimodal features from TikTok videos at scale, (2) how to represent these features in a way that enables semantic retrieval, and (3) how to do so cheaply and scalably without requiring large GPU clusters.
+172	1.2  Problem Statement
+173	Given a large collection of TikTok videos from a diverse set of creators, the problem addressed in this thesis is: how can we build a scalable, low-cost pipeline that automatically transcribes speech, encodes visual content, and enables fast semantic search across thousands of videos — using open-source tools and a single GPU workstation, while being architecturally ready to scale horizontally to multiple servers?
+174	This thesis answers this question with a complete working system, from data collection to a live demo application, supported by empirical benchmarks on real TikTok data.
+175	1.3  Contributions
+176	The main contributions of this thesis are:
+177	•  A scalable, modular, three-stage streaming distributed pipeline (extract, transcribe, embed) for processing TikTok videos using Ray producer-consumer queues with bounded memory and zero intermediate disk I/O during inference.
+178	•  A multimodal embedding scheme combining CLIP image embeddings from video frames and CLIP text embeddings from Whisper transcriptions with empirically chosen weights (0.85 image / 0.15 text), stored in both FAISS and Elasticsearch.
+179	•  A semantic search and personalized creator discovery demo application supporting natural language queries over 1,000 TikTok videos from 357 creators, with empirical benchmarks showing 1.84 videos/s and 1.94x wall-clock speedup when scaling Stage-1 workers from 2 to 8.
+180	•  A documented multi-server deployment architecture enabling horizontal scaling by changing a single line of configuration.
+181	1.4  Thesis Structure
+182	The remainder of this thesis is organized as follows. Chapter 2 surveys related work. Chapter 3 provides the theoretical background. Chapter 4 describes the system architecture. Chapter 5 details the implementation. Chapter 6 presents benchmarks and evaluation results. Chapter 7 concludes the thesis and outlines directions for future work.
+183	1.5  Hypothesis
+184	This thesis investigates the following hypothesis regarding the semantic search component described in Chapters 4-6:
+185	H1: Combining visual (CLIP image) and text (CLIP transcript) embeddings into a single weighted representation yields higher creator-search relevance (Precision@10) than using either modality alone.
+186	This hypothesis is evaluated empirically in Section 6.5 by comparing five visual/text weighting configurations — visual-only, text-only, 50/50, 85/15, and 15/85 — against the currently deployed 85/15 configuration, using manually labeled Precision@10 over five representative niche queries. Section 6.5 additionally examines the semantic structure of the resulting creator embedding space through agglomerative clustering and silhouette analysis, to assess whether creators retrieved for the same query are grouped meaningfully.
+205	2  Related Work
+206	2.1  Short-Form Video Platforms and Content Analysis
+207	Short-form video platforms have attracted significant academic interest in recent years. Montag et al. [1] analyzed TikTok usage patterns and reported that the platform's recommendation algorithm is unusually effective at retaining user attention. Zhao et al. [2] proposed a multimodal short-video analysis system combining visual, OCR, and ASR streams for rumor detection, illustrating both the value and the labeled-data requirements of multimodal short-form video methods. Omar and Dequan [3] studied how personality traits and user motivations influence TikTok usage behaviors, highlighting the need for accessible third-party content analysis tools.
+208	In the domain of social media content mining more broadly, Wei et al. [4] showed that combining multimodal signals improves micro-video recommendation quality compared to unimodal approaches. Their findings motivate the multimodal fusion strategy adopted in this thesis.
+209	2.2  Automatic Speech Recognition
+210	Automatic Speech Recognition (ASR) has undergone a revolution with the introduction of transformer-based models. OpenAI's Whisper [5], trained on 680,000 hours of multilingual audio, achieves near-human word error rates across a wide range of languages. The faster-whisper library [6] reimplements Whisper using CTranslate2 with INT8 quantization on CPU and float16 on GPU, achieving substantial speedups that make large-scale batch transcription practical on a single workstation.
+211	Baevski et al.'s wav2vec 2.0 [7] demonstrated that self-supervised pretraining on unlabeled audio can yield competitive ASR performance, motivating the use of pre-trained multilingual speech models in this pipeline.
+212	2.3  Vision-Language Models and Multimodal Embeddings
+213	The joint embedding of images and text into a shared vector space was pioneered by CLIP [8] from OpenAI, trained on 400 million image-text pairs using a contrastive objective that aligns image and text representations in a 512-dimensional shared space. The OpenCLIP library [9] provides open-source reproductions with comparable performance. Averaging per-frame CLIP embeddings is a practical approach for transferring image-text models to video; related vision-language work such as ALBEF [10] further advances multimodal alignment through contrastive learning before fusion.
+214	2.4  Vector Similarity Search
+215	Efficient similarity search in high-dimensional vector spaces is a well-studied problem. Johnson et al. [11] introduced FAISS (Facebook AI Similarity Search), providing both exact flat indices and approximate nearest-neighbor structures (IVF, HNSW) scaling to billion-scale datasets. Malkov and Yashunin [12] introduced the HNSW (Hierarchical Navigable Small-World) algorithm, which achieves sub-linear query time with high recall, now available natively in both FAISS and Elasticsearch.
+216	Elasticsearch 8.x [13] supports dense-vector fields natively with cosine, dot-product, and L2 similarity, enabling hybrid queries that combine keyword filters with semantic similarity. Karpukhin et al. [14] demonstrated that dense retrieval over large corpora using bi-encoder embeddings consistently outperforms traditional sparse retrieval (BM25) for semantic queries, directly motivating the embedding-based search approach in this system.
+217	2.5  Distributed Data Pipelines
+218	Ray [15] is an open-source distributed computing framework for Python that enables both embarrassingly parallel and actor-based stateful workloads with minimal code changes. Unlike heavyweight frameworks such as Apache Spark, Ray runs natively on a single machine and scales to a cluster by changing a single initialization call. Moritz et al. [15] demonstrate near-linear speedup for data-parallel tasks across dozens of nodes.
+219	Stateful Ray actors keep models resident across tasks and avoid repeated weight loading, which is essential for inference-heavy video pipelines [15]. Romero et al. [16] study automated model-less inference serving (INFaaS) and emphasize the cost of model placement and loading in distributed inference systems, reinforcing the design choice of long-lived Whisper and CLIP actors in this work. Dean et al. [17] established foundational principles for large-scale distributed data processing that underpin the streaming pipeline design employed here.
+227	3  Theoretical Background
+228	3.1  Multimodal Learning
+229	Multimodal learning refers to machine learning methods that jointly process information from multiple sensory modalities [18]. Different modalities are complementary: audio reveals what a speaker says even when the visual content is ambiguous, while visual frames capture the aesthetic style, setting, and identity that audio alone cannot convey. The standard approaches to multimodal fusion are early fusion (concatenating raw features before a shared encoder), late fusion (combining outputs of separate encoders), and cross-modal attention (allowing modalities to attend to one another). This thesis uses weighted late fusion: CLIP image embeddings and CLIP text embeddings are computed independently and combined as a weighted sum, with weights tuned empirically.
+230	3.2  Contrastive Language-Image Pretraining (CLIP)
+231	CLIP [8] trains two encoders — a Vision Transformer image encoder and a Transformer text encoder — to produce aligned embeddings in a shared semantic space. Given a batch of N image-text pairs, CLIP maximizes the cosine similarity of the N correct pairs while minimizing the similarity of the N squared minus N incorrect pairs using a symmetric cross-entropy loss over the similarity matrix. After training, CLIP exhibits remarkable zero-shot transfer: a text query can be compared directly to image embeddings using cosine similarity without any task-specific fine-tuning.
+232	Formally, given image I and text T, CLIP produces normalized embeddings:
+233	z_I = Normalize(Enc_image(I))   in R^512
+z_T = Normalize(Enc_text(T))    in R^512
+similarity(I, T) = z_I . z_T      in [-1, 1]
+234	The per-creator embedding is computed as a weighted combination of visual and text signals:
+235	z_creator = Normalize(0.85 * mean(z_I^(1..K)) + 0.15 * z_T)
+236	where K is the number of frames sampled per creator (up to 10). The weights 0.85 (image) and 0.15 (text) reflect the visual dominance of TikTok content while incorporating transcription semantics.
+238	3.3  Approximate Nearest-Neighbor Search and FAISS
+239	Exact nearest-neighbor search in d dimensions requires O(N times d) time per query. FAISS [11] addresses this with several index types. IndexFlatIP performs exact brute-force inner-product search, suitable for the creator corpus size (N approximately 350) where exact search completes in under 1 ms. IndexIVFFlat partitions vectors into Voronoi cells and restricts search to the nprobe nearest cells. IndexHNSW uses a hierarchical graph structure for sub-linear query time with high recall at the cost of higher memory.
+240	All vectors in FAISS are L2-normalized before indexing so that inner product equals cosine similarity. The index is built offline during the pipeline and loaded read-only by the search application at startup.
+241	3.4  Automatic Speech Recognition — Whisper
+242	Whisper [5] is an encoder-decoder transformer trained on 680,000 hours of multilingual audio. The audio is first converted to an 80-channel log-Mel spectrogram with 25 ms windows and 10 ms hop, then processed by a convolutional encoder followed by a standard transformer encoder-decoder. The decoder performs autoregressive token generation conditioned on a language token.
+243	The faster-whisper implementation runs Whisper through the CTranslate2 inference engine. This pipeline uses the small model (244 million parameters) on GPU with float16 precision and BatchedInferencePipeline, processing 32 videos per Ray task. Audio is capped at 180 seconds per video to bound ASR cost on long uploads while retaining sufficient speech signal.
+244	3.5  Distributed Computing with Ray
+245	Ray [15] provides three core abstractions. Remote functions (@ray.remote) are stateless tasks executed on any available CPU or GPU in the cluster. Actors (@ray.remote class) are stateful workers that maintain state across calls — used for Whisper and CLIP models to avoid reloading weights on every task. The object store holds shared, immutable objects passed between tasks by reference, avoiding serialization overhead for large arrays.
+246	Ray's scheduler distributes tasks across nodes automatically. When a cluster is configured with ray.init(address='auto'), the same Python code runs across dozens of nodes without modification. The head node is started with:
+247	ray start --head --port=6379 --dashboard-host=0.0.0.0
+248	and each worker node joins with:
+249	ray start --address='<HEAD_IP>:6379'
+250	This is the key architectural feature that makes the pipeline horizontally scalable with minimal operational overhead.
+251	3.6  Elasticsearch Dense-Vector Search
+252	Elasticsearch 8.x supports 512-dimensional dense-vector fields natively with HNSW approximate nearest-neighbor indexing and cosine similarity [13]. The kNN search API returns approximate nearest neighbors, optionally combined with keyword filters on metadata fields. The system stores per-creator image, text, and combined embeddings alongside metadata (username, follower count, video count), enabling hybrid queries that filter by follower threshold while sorting by semantic similarity. User feedback interactions are also persisted in Elasticsearch, enabling the personalized reranking layer described in Section 4.8.
+271	4  System Architecture and Design
+272	4.1  Overview and Design Goals
+273	The system is designed around five principles:
+274	•  Cheap — runs on a single consumer GPU workstation (tested on NVIDIA RTX 4050) with no cloud API costs.
+275	•  Fast — processes thousands of videos in minutes using streaming parallelism and GPU acceleration.
+276	•  Scalable — horizontally scalable to N servers by changing a single line of Ray configuration.
+277	•  Modular — each stage (download, extract, transcribe, embed, index) can be run, re-run, or replaced independently.
+278	•  Searchable — the final index supports sub-millisecond semantic queries over hundreds of creators.
+279	The pipeline flows from left to right: Stage 0 (download) produces MP4 files on disk. Stages 1 through 3 run as a streaming producer-consumer graph inside Ray: Stage 1 reads each MP4 and outputs in-memory s16le PCM audio (max 180 s) and JPEG frame bytes (10 frames from the first 10 s); Stage 2 batch-transcribes audio with GPU Whisper; Stage 3 batch-encodes creators with GPU CLIP. Only source MP4s are read from disk during processing — no intermediate WAV or image files are written. After embedding, transcriptions and JPEG preview frames are persisted to Elasticsearch alongside FAISS vector indices.
+281	Fig. 4.1.  High-level system architecture. Arrows indicate data flow. All stages execute within Ray's distributed task graph and overlap in time.
+282	4.2  Data Collection
+283	The dataset is constructed from a CSV of TikTok creator profiles. Creators are filtered to a minimum of 150,000 followers and at least 80 published videos, and the top 357 qualifying creators are selected. For each creator, up to three recent videos are downloaded using yt-dlp [19], which handles TikTok's anti-scraping measures through rotating user-agents and proxy support. Downloads are implemented as Ray remote tasks with up to four retries per video.
+284	4.3  Stage 1: Media Extraction
+285	For each video, Stage 1 runs two parallel FFmpeg pipes: (1) audio extraction — up to 180 seconds of audio (skipping the first second) is resampled to 16 kHz mono s16le PCM and kept as raw bytes in the Ray object store; and (2) frame extraction — one frame per second from the first 10 seconds is emitted as an MJPEG byte stream and parsed into up to 10 JPEG frames (224x224). Ten frames capture the opening visual identity of TikTok content (face, setting, intro card) while bounding CLIP compute. Stage 1 tasks are @ray.remote functions with num_cpus=1; worker count is configurable (benchmarked at 2, 4, 8, and 12).
+286	4.4  Stage 2: Audio Transcription
+287	Stage 2 transcribes in-memory PCM audio using faster-whisper small on GPU with batched inference (32 videos per Ray task, 16 audio chunks per GPU forward pass). The model is loaded once per Ray actor. Audio is limited to the first 180 seconds of each video. After all Whisper batches complete, the actor is shut down to release GPU memory before batched CLIP embedding begins.
+288	4.5  Stage 3: Multimodal Embedding
+289	Stage 3 generates a 512-dimensional embedding per creator using a GPUBatchEmbeddingActor. Creators are processed in batches of 8; all JPEG frames across the batch are decoded in memory and encoded together in GPU forward passes of 64 frames each (cross-creator batching). Per-frame image embeddings are L2-normalized and averaged per creator. Concatenated transcription text from all videos is encoded by the CLIP text encoder in batches of 32. The combined embedding is computed as:
+290	z_creator = Normalize(0.85 * z_image + 0.15 * z_text)
+291	FP16 (half-precision) inference is used throughout the GPU stage, halving memory consumption and increasing throughput on NVIDIA Tensor Core GPUs.
+292	4.6  Vector Storage and Indexing
+293	Two storage backends serve different query access patterns. FAISS (creators.index) provides a flat inner-product index over all creator embeddings, loaded into memory at application startup. For the corpus size of approximately 350 creators, flat exact search completes in under 1 ms per query. Elasticsearch stores all creator metadata, full transcription text, JPEG preview frames, and all three embedding vectors (image, text, combined) as Elasticsearch documents in the creator_transcriptions index. The combined_embedding field is declared as a dense_vector with 512 dimensions and cosine similarity. Persisting transcriptions and JPEG frames in Elasticsearch enables the Flask demo to render search results without re-reading source MP4 files, while supporting hybrid queries: follower-count filtering, full-text search on the transcription field, and vector similarity in a single API call.
+294	4.7  Semantic Search Demo Application
+295	The search application is a Flask web application providing a browser-accessible semantic creator search interface. The workflow is: (1) the user types a natural language query; (2) the CLIP text encoder converts the query to a 512-dimensional vector; (3) FAISS returns the top 10 creators by cosine similarity; (4) results are rendered with preview frames, creator username, and similarity score. The application simultaneously displays unpersonalized (standard FAISS) and personalized results side by side to demonstrate the effect of the personalization layer.
+296	4.8  Personalized Search
+297	Personalized search extends baseline retrieval with a feedback loop. Users mark results as liked or disliked; this feedback is stored in Elasticsearch with the query context, creator name, and timestamp. When a personalized query is executed, the system retrieves the top 30 FAISS candidates (3 times oversampling), loads the user's liked and disliked creators for the current query from Elasticsearch, and computes a personalized score:
+298	score_p = 0.70 * score_FAISS
+        + 0.25 * mean_sim(candidate, liked_creators)
+        - 0.25 * mean_sim(candidate, disliked_creators)
+299	where mean_sim is the average cosine similarity between the candidate embedding and the set of liked or disliked creator embeddings. This soft reranking promotes candidates similar to previously liked creators and demotes those similar to disliked ones without requiring any model retraining.
+311	5  Implementation
+312	5.1  Technology Stack
+313	Table 5.1 summarizes the key technologies and libraries used in the system.
+314	Table 5.1.  Technology stack.
+316	5.2  Distributed Pipeline with Ray
+317	The pipeline uses a bounded-memory producer-consumer design. Stage 1 submits FFmpeg extraction tasks; completed payloads (PCM + JPEG bytes) are buffered and flushed to Stage 2 in batches of 32 videos. Stage 2 returns per-video transcriptions; results are aggregated per creator and queued for Stage 3 in batches of 8 creators. Because Whisper and CLIP share one GPU, the Whisper actor is explicitly shut down before the CLIP actor is spawned. The main coordination loop uses ray.wait():
+318	while s1_futures or s2_futures or s3_futures or s2_pending or s3_pending:
+    _fill_s2()          # flush 32-video batches to Whisper
+    _maybe_flush_s2()   # flush remainder when S1 done
+    done_s2, _ = ray.wait(list(s2_futures), timeout=0.1)
+    for f in done_s2:
+        result = ray.get(f)
+        _on_s2_result(result)   # aggregate per creator, queue for S3
+    if s2_done and embedder is None:
+        embedder = _transition_s2_to_s3(whisper)  # kill Whisper, spawn CLIP
+    _fill_s3()          # submit 8-creator batches to CLIP
+319	Audio PCM is released from the Ray object store after each Whisper batch; only transcription text and JPEG bytes are retained for embedding. Partial batches (fewer than 32 videos) are flushed when Stage 1 completes so no videos are left unprocessed.
+320	5.3  Embedding Generation
+321	The GPUBatchEmbeddingActor loads CLIP once at initialization and keeps it resident in GPU memory. JPEG bytes are decoded with torchvision and encoded in cross-creator batches. FP16 precision is used for all GPU inference:
+322	@ray.remote(num_gpus=0.9)
+class GPUBatchEmbeddingActor:
+    def embed_creators_batch(self, items: list[dict]) -> list:
+        # items: [{creator, text, frames: [jpeg_bytes, ...]}, ...]
+        # decode all JPEGs, encode_image() in batches of 64
+        # encode_text() in batches of 32
+        # return [(creator, img_emb, txt_emb), ...]
+323	5.4  FAISS Index Construction
+324	After all creator embeddings are computed, the FAISS index is built by stacking embedding vectors into a float32 NumPy array, normalizing for cosine similarity, and writing to disk:
+325	vectors = np.stack(embeddings).astype('float32')
+faiss.normalize_L2(vectors)
+index = faiss.IndexFlatIP(512)
+index.add(vectors)
+faiss.write_index(index, 'creators.index')
+326	At query time, the user's text query is encoded by CLIP, L2-normalized, and searched against the index in a single call returning scores and indices for the top-k creators.
+328	5.5  Elasticsearch Integration
+329	The indexing script creates an Elasticsearch index with three dense_vector fields:
+330	'image_embedding':    {'type': 'dense_vector', 'dims': 512,
+                        'index': True, 'similarity': 'cosine'},
+'text_embedding':      {'type': 'dense_vector', ...},
+'combined_embedding':  {'type': 'dense_vector', ...}
+331	For each creator the indexing script stores the full transcription text, JPEG preview frames, image/text/combined embeddings (512-dim dense_vector fields), and profile metadata (follower count, video count) in the creator_transcriptions index. User feedback interactions are stored in a separate user_interactions index, enabling the personalization layer to retrieve liked and disliked creators per user per query context.
+332	5.6  Flask Demo Application
+333	The Flask application serves as the user-facing demonstration. It is stateless at the application level: all persistent state is stored in Elasticsearch. Three routes handle the workflow: /login provides session authentication; /demo handles search queries, runs both unpersonalized and personalized FAISS searches, and renders results with frame previews; and /feedback is a JSON API endpoint that persists liked or disliked creator feedback to Elasticsearch. JPEG preview frames and transcriptions are loaded from the creator_transcriptions Elasticsearch documents when rendering search results.
+334	5.7  Multi-Server Scalability
+335	The most important architectural decision is the use of Ray as the distributed runtime. The full pipeline — downloads, extraction, transcription, and embedding — runs inside Ray remote tasks and actors. On a single machine, Ray is initialized with os.cpu_count() CPUs and 1 GPU. To extend to multiple servers, the head node is started with ray start --head and worker nodes join with ray start --address='<HEAD_IP>:6379'. The application code changes by exactly one line:
+336	# Single machine:
+ray.init(num_cpus=os.cpu_count(), num_gpus=1)
+
+# Multi-server cluster:
+ray.init(address='auto')
+337	Ray's scheduler distributes @ray.remote tasks across all registered nodes. The num_cpu_workers parameter then represents the total CPU count across all machines. Source MP4 files must reside on a shared NFS network drive or object storage (MinIO or S3) accessible from all nodes at the same path. Intermediate audio and frames stay in the Ray object store during processing; persistent transcriptions and JPEG previews are written to Elasticsearch after the run.
+340	6  Evaluation and Results
+341	6.1  Dataset
+342	The dataset was collected from TikTok's public creator ecosystem over multiple sessions. Creators were filtered to a minimum of 150,000 followers and at least 80 published videos to ensure content richness. Up to three videos per creator were downloaded. Table 6.1 summarizes the dataset statistics.
+343	Table 6.1.  Dataset statistics.
+345	6.2  Scalability Benchmark
+346	The scalability of the concurrent Ray pipeline was measured by running the full three-stage pipeline on 20 creators (50 videos total) while varying CPU workers from 2 to 12. Table 6.2 reports wall-clock time, per-stage averages, speedup, and CPU utilization.
+347	Table 6.2. Concurrent Ray pipeline scalability benchmark (20 creators, 50 videos).
+348	Note: GPU memory column not shown; Whisper and CLIP actors were executed using GPU acceleration during this benchmark.
+349	Increasing CPU workers from 2 to 12 reduces total wall-clock time from 84.6 s to 65.3 s, achieving a 1.30 times speedup. Sub-linear scaling is expected: while Stage 1 benefits from additional CPU workers, the GPU-based inference stages (Whisper transcription and CLIP embedding generation) remain limited by available GPU resources. Furthermore, Ray scheduling overhead and communication between pipeline stages reduce the efficiency gained from additional workers, especially for smaller workloads.
+350	After 8 CPU workers, the performance improvement becomes minimal, indicating that the pipeline shifts from CPU-bound video extraction toward GPU inference and synchronization overhead. In a larger multi-GPU cluster, additional GPU actors could be deployed to parallelize the inference stages and achieve higher scalability.
+351	Fig. 6.1. Speedup vs. number of CPU workers. The dashed line represents ideal linear scaling. The measured speedup follows a sub-linear trend due to GPU inference bottlenecks, Ray scheduling overhead, and pipeline synchronization costs.
+352	6.3  Large-Scale Run (1,000 Videos) 
+353	To validate the scalability of the pipeline on a larger dataset, the complete three-stage Ray pipeline was executed on 1,000 TikTok videos collected from 357 creators. The experiment varied the number of Stage-1 FFmpeg CPU workers among {2, 4, 8, 12}, while GPU Whisper transcription and CLIP embedding used the batched single-GPU lifecycle described in Chapters 4–5. Table 6.3 compares the best 50-video configuration (8 workers) with the best 1,000-video configuration (also 8 workers).
+354	Table 6.3. Large-scale pipeline scalability results (1,000 videos, 357 creators).
+356	At 1,000 videos the pipeline reaches 1.84 videos/s and finishes in 9.1 minutes (544 s), a 1.94x wall-clock speedup over the 2-worker baseline (1,058 s). The 50-video run shows lower throughput (0.77 videos/s) mainly because fixed initialization costs — Ray actor startup, GPU initialization, model loading, and CUDA warm-up — are amortized over fewer videos. Stage-2 and Stage-3 active times scale roughly with workload size (Whisper ~0.43–0.45 s/video on average; CLIP ~0.14–0.28 s/creator). Part of the evaluation used a two-node Ray cluster of laptops connected over Wi-Fi; network transfer of intermediate objects limited further gains when adding remote CPU workers. In a cloud deployment with colocated compute and storage, this communication bottleneck would be substantially reduced.
+357	Overall, the large-scale run confirms that 8 Stage-1 workers are the sweet spot on this hardware: 12 workers do not improve wall-clock time further (599.7 s, 1.76x) due to Ray scheduling overhead and CPU contention.
+360	6.4  Search Quality
+361	To quantify the impact of personalization, the system was evaluated on five distinct niches. For each niche, a representative query was run under both standard and personalized search modes, and the number of relevant creators within the Top-10 results was recorded before and after feedback. Precision and improvement were then computed for each niche.
+363	Table 6.4. Per-niche comparison of standard and personalized search results.
+365	Personalization consistently increased Top-10 relevance across all five niches. On average, relevant creators in the Top-10 rose from 3.8 to 7.2, with an average precision of 0.72 and an average improvement of +92.6%. The largest gains appeared in Tech (+133%) and Makeup/Fashion (+100% each), while Fitness showed the smallest improvement (+50%).
+366	A common pattern was semantic overlap between related sub-categories. For instance, "makeup creators" often surfaced cosplay creators in baseline results, since cosplay involves heavy makeup application. By marking cosplay results as "Bad," the system learned to suppress them for this query. A similar effect occurred in Fitness, where broad matches included posing or modeling content rather than gym or workout videos; negative feedback helped the system refine results toward the user's actual intent.
+367	6.5  Embedding Configuration and Clustering Analysis
+368	Section 6.4 measured the effect of personalization on the deployed 0.85/0.15 (image/text) embedding configuration. This section instead tests hypothesis H1 (Section 1.5) by comparing five visual/text weighting configurations directly: visual-only (1.00/0.00), text-only (0.00/1.00), 50/50, the deployed 85/15, and 15/85. For each configuration, the five niche queries (makeup, fitness, cooking, fashion, tech) were run against a dedicated FAISS index built from that configuration's combined embeddings, and the top-10 results were manually labeled as relevant or not relevant. Table 6.5 reports the resulting average Precision@10 per configuration, alongside the existing 0.85/0.15 validation numbers derived from the good/bad creator feedback previously collected through the Flask demo application, for direct comparison.
+369	Table 6.5.  Average Precision@10 by embedding configuration.
+371	Fig. 6.2.  Average Precision@10 across the five embedding configurations, compared with the existing 0.85/0.15 validation results.
+372	Contrary to hypothesis H1, the purely visual configuration (1.00/0.00) achieved the highest average Precision@10 (0.32) among the five newly tested configurations, slightly exceeding the deployed 85/15 configuration (0.28); the text-only and text-heavy configurations (0.00/1.00 and 0.15/0.85) performed substantially worse (0.00 and 0.02, respectively). Hypothesis H1 is therefore not confirmed by this experiment: combining modalities did not outperform the best single modality. A likely explanation is that the Whisper transcriptions used for the text embeddings are frequently non-informative — background-music or trending-audio segments cause the speech-to-text model to hallucinate repetitive or unrelated text rather than capturing the creator's actual spoken content, adding noise rather than signal to the text embedding.
+373	The existing 0.85/0.15 validation result (0.64) is considerably higher than the freshly measured value for the same configuration (0.28). Rows for which no prior human feedback existed, and whose retrieved creators lacked informative transcriptions, were conservatively labeled not relevant during this new evaluation; the discrepancy is therefore best interpreted as a lower bound on the freshly measured configurations rather than firm evidence that search quality has degraded, and it highlights the value of continuously collecting fresh relevance judgments rather than relying solely on historical feedback.
+374	Using the best-performing configuration from this experiment (visual-only), all creator embeddings were grouped with agglomerative hierarchical clustering under cosine distance, testing between 3 and 15 clusters and scoring each with the silhouette coefficient. An initial run using average linkage exhibited a well-known pathology: at every tested cluster count, the algorithm split off a single outlier creator rather than forming meaningful groups, which trivially inflates the silhouette score for an isolated point. Ward linkage was used instead — equivalent to cosine-based clustering on the unit-normalized embeddings used throughout this thesis, since ‖u − v‖² = 2(1 − cos_sim(u, v)) for unit vectors — which avoids this chaining behavior. Table 6.6 and Fig. 6.3 report the resulting silhouette scores.
+375	Table 6.6.  Silhouette score by number of clusters (k), Ward linkage, cosine-distance scoring.
+377	Fig. 6.3.  Silhouette score as a function of the number of clusters (k).
+378	The silhouette score is maximized at k = 8 (0.0846), yielding eight clusters of size 63, 67, 17, 38, 69, 20, 23, and 9 creators (Fig. 6.4, Fig. 6.5). Absolute silhouette values in the 0.06-0.09 range are modest, which is expected: CLIP visual embeddings were not trained to separate TikTok content niches specifically, so cluster boundaries are soft rather than sharply delineated. Nevertheless, the clustering captures statistically real structure: for each of the five test queries, between 50% and 80% of the top-10 search results fall into a single dominant cluster (Fig. 6.6), well above the roughly 12.5% expected by chance with eight roughly balanced clusters. This indicates that, although hypothesis H1 was not confirmed for the search-relevance metric, the underlying visual embedding space does organize creators into semantically meaningful groups that align with the tested query niches.
+380	Fig. 6.4.  2D PCA projection of creator embeddings, colored by cluster (k = 8).
+382	Fig. 6.5.  Number of creators per cluster (k = 8).
+384	Fig. 6.6.  Percentage of top-10 search results sharing the dominant cluster, per query.
+403	7  Conclusion and Future Work
+404	7.1  Conclusion
+405	This thesis presented a scalable multimodal pipeline for analyzing TikTok videos at scale using vector representations and semantic similarity search. The system addresses the challenge of making large collections of short-form videos semantically searchable without cloud API costs or labeled training data.
+406	The pipeline achieves three goals simultaneously: it is fast (1,000 videos in 9.1 minutes at 1.84 videos/s), cheap (runs on a single consumer GPU workstation), and scalable (horizontally distributable with a single configuration change using Ray). The multimodal embedding scheme combines CLIP image embeddings from in-memory JPEG frames with CLIP text embeddings from Whisper transcriptions. Vectors are stored in FAISS for sub-millisecond search; transcriptions, JPEG previews, and embeddings are stored in Elasticsearch for hybrid metadata queries and the Flask demo.
+407	The Flask demo application demonstrates that the resulting vector index enables natural language queries over 357 TikTok creators, with personalized reranking based on user feedback stored in Elasticsearch. Human evaluation shows consistently relevant top-10 retrievals across diverse query categories. The key technical contribution is the streaming Ray actor pipeline design with batched GPU Whisper (small model, 180 s audio cap) and batched CLIP embeddings, achieving 1.94x wall-clock speedup when scaling Stage-1 workers from 2 to 8, with documented multi-node deployment requiring minimal code changes.
+408	7.2  Future Work
+409	Several directions for future improvement are identified:
+410	•  Larger CLIP models: upgrading from ViT-B-32 (512 dimensions) to ViT-L-14 (768 dimensions) or larger OpenCLIP variants has been shown to substantially improve retrieval quality [20] at the cost of higher memory and compute.
+411	•  Temporal modeling: the current embedding averages up to 10 frames, discarding temporal order. Using video-specific transformers such as VideoMAE [21] or TimeSformer [22] to model the sequence of frames would capture motion, pacing, and editing style.
+412	•  Real-time indexing: the current pipeline is batch-oriented. A real-time extension would monitor new videos from tracked creators and update FAISS and Elasticsearch indices incrementally as new content is published.
+413	•  Larger multi-server benchmark: this thesis includes a two-node Wi-Fi cluster experiment (§6.3), but a follow-up study on a 4 to 8 node high-bandwidth cluster would better quantify horizontal scaling efficiency without wireless network bottlenecks.
+414	•  Explainability: adding attention-weighted frame visualization to highlight the frames most influential for a retrieval result would improve user trust and reveal the visual features defining a creator's style.
+440	References
+441	[1]  Montag, C., Yang, H., and Elhai, J. D. (2021). On the psychology of TikTok use: A first glimpse from empirical findings. Frontiers in Public Health, 9, 641673.
+442	[2]  Zhao, J., Wang, S., et al. (2023). Multimodal short video rumor detection system based on contrastive learning. arXiv:2304.08401.
+443	[3]  Omar, B. and Dequan, W. (2020). Watch, share or create: The influence of personality traits and user motivation on TikTok mobile video usage. International Journal of Interactive Mobile Technologies, 14(4).
+444	[4]  Wei, Y., Wang, X., Nie, L., He, X., Hong, R., and Chua, T.-S. (2019). MMGCN: Multi-modal graph convolution network for personalized recommendation of micro-video. In Proceedings of ACM Multimedia 2019.
+445	[5]  Radford, A., Kim, J. W., Xu, T., Brockman, G., McLeavey, C., and Sutskever, I. (2023). Robust speech recognition via large-scale weak supervision. In Proceedings of ICML 2023.
+446	[6]  Klein, G. / SYSTRAN (2023). faster-whisper: Fast Whisper transcription using CTranslate2. GitHub. https://github.com/SYSTRAN/faster-whisper
+447	[7]  Baevski, A., Zhou, H., Mohamed, A., and Auli, M. (2020). wav2vec 2.0: A framework for self-supervised learning of speech representations. In Advances in NeurIPS 2020.
+448	[8]  Radford, A., Kim, J. W., Hallacy, C., et al. (2021). Learning transferable visual models from natural language supervision. In Proceedings of ICML 2021.
+449	[9]  Ilharco, G., Wortsman, M., Wightman, R., et al. (2021). OpenCLIP. Zenodo. https://doi.org/10.5281/zenodo.5143773
+450	[10] Li, J., Selvaraju, R., Gotmare, A., et al. (2021). Align before fuse: Vision and language representation learning with momentum distillation. In Advances in NeurIPS 2021.
+451	[11] Johnson, J., Douze, M., and Jegou, H. (2021). Billion-scale similarity search with GPUs. IEEE Transactions on Big Data, 7(3), 535-547.
+452	[12] Malkov, Y. A. and Yashunin, D. A. (2018). Efficient and robust approximate nearest neighbor search using hierarchical navigable small world graphs. IEEE Transactions on Pattern Analysis and Machine Intelligence, 42(4), 824-836.
+453	[13] Elasticsearch B.V. (2024). Dense vector field type. Elasticsearch Reference 8.x. https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html
+454	[14] Karpukhin, V., Oguz, B., Min, S., et al. (2020). Dense passage retrieval for open-domain question answering. In Proceedings of EMNLP 2020.
+455	[15] Moritz, P., Nishihara, R., Wang, S., et al. (2018). Ray: A distributed framework for emerging AI applications. In Proceedings of OSDI 2018.
+456	[16] Romero, F., Li, Q., Yadwadkar, N. J., and Kozyrakis, C. (2021). INFaaS: Automated model-less inference serving. In Proceedings of USENIX ATC 2021.
+457	[17] Dean, J. and Ghemawat, S. (2008). MapReduce: Simplified data processing on large clusters. Communications of the ACM, 51(1), 107-113.
+458	[18] Baltrusaitis, T., Ahuja, C., and Morency, L.-P. (2019). Multimodal machine learning: A survey and taxonomy. IEEE Transactions on Pattern Analysis and Machine Intelligence, 41(2), 423-443.
+459	[19] yt-dlp contributors (2024). yt-dlp: A feature-rich command-line audio/video downloader. https://github.com/yt-dlp/yt-dlp
+460	[20] Cherti, M., Beaumont, R., Wightman, R., et al. (2023). Reproducible scaling laws for contrastive language-image learning. In Proceedings of CVPR 2023.
+461	[21] Tong, Z., Song, Y., Wang, J., and Wang, L. (2022). VideoMAE: Masked autoencoders are data-efficient learners for self-supervised video pre-training. In Advances in NeurIPS 2022.
+462	[22] Bertasius, G., Wang, H., and Torresani, L. (2021). Is space-time attention all you need for video understanding? In Proceedings of ICML 2021 (TimeSformer).
+463	[23] Dosovitskiy, A., Beyer, L., Kolesnikov, A., et al. (2021). An image is worth 16x16 words: Transformers for image recognition at scale. In Proceedings of ICLR 2021.
+464	[24] Reimers, N. and Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. In Proceedings of EMNLP 2019.
