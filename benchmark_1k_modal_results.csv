@@ -1,0 +1,2 @@
+cpu_workers,s1_workers,n_videos,n_creators,s1_avg_s,s2_avg_s,s3_avg_s,total_wall_s,throughput_vps,avg_cpu_pct,peak_gpu_mb,modal_gpu,modal_containers,modal_parallel
+8,16,50,20,4.076,0.069,0.223,121.56,0.411,76.8,3379.7,T4,4,8

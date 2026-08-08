@@ -430,15 +430,10 @@ def plot_results(df: pd.DataFrame):
 def main():
     RESULTS_DIR   = "results_4"
     NUM_VIDEOS    = 20
-    WORKER_COUNTS = [4, 6, 8]
+    WORKER_COUNTS = [4, 6, 8, 16, 30]
 
     start_web()
-    ray.init(
-        include_dashboard=True, dashboard_host="0.0.0.0",
-        ignore_reinit_error=True,
-        num_cpus=os.cpu_count(),
-        num_gpus=1 if torch.cuda.is_available() else 0,
-    )
+    ray.init(address="auto", ignore_reinit_error=True)
     print(f"\n  Ray ready  |  {ray.cluster_resources()}")
     print(f"  Ray Dashboard  http://localhost:8265\n")
 

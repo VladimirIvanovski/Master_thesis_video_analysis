@@ -19,10 +19,13 @@ os.environ.setdefault("OMP_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
 
 import glob
+import threading
 import time
 from collections import defaultdict
 
+import numpy as np
 import pandas as pd
+import psutil
 import ray
 import torch
 from tqdm import tqdm
@@ -37,14 +40,55 @@ from stage1_download_extract import extract_video_to_memory_remote
 from stage2_transcribe import GPUWhisperActor, aggregate_creator_transcriptions
 from stage3_embeddings import GPUBatchEmbeddingActor
 
-TARGET_VIDEOS = 200
-S1_CONFIGS = [2, 4, 8, 12]
-OUT_BENCHMARK_CSV = "pipeline_streaming_benchmark_results.csv"
+TARGET_VIDEOS = 948  # all videos already downloaded in RESULTS_DIR (no repeats)
+S1_CONFIGS = [8]  # single run to regenerate creators.txt/image_embs.npy/text_embs.npy at full scale
+OUT_BENCHMARK_CSV = "pipeline_streaming_benchmark_results_vid_9.csv"
 OUT_TRANSCRIPTIONS = os.path.join(TRANSCRIPTIONS_DIR, "pipeline_streaming_transcriptions.csv")
 
 
 def _dbg(msg: str):
     tqdm.write(f"[pipeline] {msg}")
+
+
+_mon_active = False
+_mon_log: list = []
+
+
+def _start_cpu_monitor():
+    global _mon_active, _mon_log
+    _mon_active, _mon_log = True, []
+
+    def _loop():
+        while _mon_active:
+            _mon_log.append({"cpu_pct": psutil.cpu_percent(interval=1)})
+            time.sleep(1)
+
+    threading.Thread(target=_loop, daemon=True).start()
+
+
+def _stop_cpu_monitor() -> float:
+    global _mon_active
+    _mon_active = False
+    time.sleep(0.3)
+    if not _mon_log:
+        return 0.0
+    return round(float(np.mean([m["cpu_pct"] for m in _mon_log])), 1)
+
+
+def _print_scalability_table(results: list[dict]):
+    headers = ["S1 Workers", "Stage 2 avg (s)", "Stage 3 avg (s)",
+               "Total wall (s)", "Speedup", "Avg CPU %"]
+    tqdm.write("\nSCALABILITY BENCHMARK:")
+    tqdm.write("  ".join(f"{h:>16}" for h in headers))
+    for row in results:
+        tqdm.write(
+            f"{row['s1_workers']:16d}"
+            f"{row['stage2_avg_s']:16.2f}"
+            f"{row['stage3_avg_s']:16.2f}"
+            f"{row['total_wall_s']:16.2f}"
+            f"{row['speedup']:15.2f}x"
+            f"{row['avg_cpu_pct']:15.1f}%"
+        )
 
 
 def _gpu_available() -> float:
@@ -138,6 +182,9 @@ def run_streaming_pipeline(videos: list[str], s1_workers: int) -> dict:
 
     video_texts: dict[str, str] = {}
     s1_time_sum = 0.0
+    s2_times: list[float] = []
+    s3_times: list[float] = []
+    s3_submit_meta: dict = {}
     s2_active_start = None
     s2_active_end = 0.0
     s3_active_start = None
@@ -188,6 +235,8 @@ def run_streaming_pipeline(videos: list[str], s1_workers: int) -> dict:
         nonlocal s2_active_end, videos_s2_done
         s2_active_end = time.time()
         videos_s2_done += batch_size
+        n_files = max(result.get("n_files", batch_size), 1)
+        s2_times.append(result.get("s2_time", 0) / n_files)
 
         for mp4, text in result["texts"].items():
             video_texts[mp4] = text
@@ -224,6 +273,7 @@ def run_streaming_pipeline(videos: list[str], s1_workers: int) -> dict:
             _dbg(f"S3 submit: {len(batch)} creators, queue_left={len(s3_pending)}")
             fut = embedder.embed_creators_batch.remote(batch)
             s3_futures[fut] = len(batch)
+            s3_submit_meta[fut] = (time.time(), len(batch))
 
     def _flush_s3():
         nonlocal embedder, s3_active_start
@@ -238,6 +288,7 @@ def run_streaming_pipeline(videos: list[str], s1_workers: int) -> dict:
         _dbg(f"S3 flush: {len(batch)} creators (final batch)")
         fut = embedder.embed_creators_batch.remote(batch)
         s3_futures[fut] = len(batch)
+        s3_submit_meta[fut] = (time.time(), len(batch))
 
     _submit_s1()
 
@@ -316,7 +367,9 @@ def run_streaming_pipeline(videos: list[str], s1_workers: int) -> dict:
                 done, _ = ray.wait(list(s3_futures), num_returns=1, timeout=0.1)
                 for f in done:
                     n = s3_futures.pop(f)
+                    t0, batch_n = s3_submit_meta.pop(f, (time.time(), n))
                     s3_results.extend(ray.get(f))
+                    s3_times.append((time.time() - t0) / max(batch_n, 1))
                     s3_active_end = time.time()
                     creators_s3_done += n
                     pbar3.update(n)
@@ -344,11 +397,16 @@ def run_streaming_pipeline(videos: list[str], s1_workers: int) -> dict:
     total_wall = time.time() - wall_start
     s2_wall = (s2_active_end - s2_active_start) if s2_active_start else 0
     s3_wall = (s3_active_end - s3_active_start) if s3_active_start else 0
+    stage2_avg_s = round(float(np.mean(s2_times)), 2) if s2_times else 0
+    stage3_avg_s = round(float(np.mean(s3_times)), 2) if s3_times else 0
 
     return {
         "s1_workers": s1_workers,
         "n_videos": n_videos,
         "n_creators": len(creators),
+        "stage2_avg_s": stage2_avg_s,
+        "stage3_avg_s": stage3_avg_s,
+        "total_wall_s": round(total_wall, 2),
         "stage_1_time_sec": round(s1_time_sum, 2),
         "stage_2_time_sec": round(s2_wall, 2),
         "stage_3_time_sec": round(s3_wall, 2),
@@ -389,10 +447,24 @@ def main():
     tqdm.write(f"Ray cluster: {ray.cluster_resources()}\n")
 
     results = []
+    baseline_wall = None
     for i, s1_workers in enumerate(S1_CONFIGS):
         tqdm.write(f"--- Run {i + 1}/{len(S1_CONFIGS)}: S1 workers = {s1_workers} ---")
+        _start_cpu_monitor()
         row = run_streaming_pipeline(videos, s1_workers)
+        row["avg_cpu_pct"] = _stop_cpu_monitor()
+        if baseline_wall is None:
+            baseline_wall = row["total_wall_s"]
+        row["speedup"] = round(baseline_wall / row["total_wall_s"], 2) if row["total_wall_s"] else 0
         results.append({k: v for k, v in row.items() if k != "transcriptions"})
+
+        tqdm.write(
+            f"  Stage2 avg {row['stage2_avg_s']}s/video | "
+            f"Stage3 avg {row['stage3_avg_s']}s/creator | "
+            f"Total {row['total_wall_s']}s | "
+            f"x{row['speedup']} | "
+            f"CPU avg {row['avg_cpu_pct']}%"
+        )
 
         if i == len(S1_CONFIGS) - 1:
             ensure_dir(TRANSCRIPTIONS_DIR)
@@ -404,7 +476,8 @@ def main():
     df = pd.DataFrame(results)
     df.to_csv(OUT_BENCHMARK_CSV, index=False)
 
-    tqdm.write("\nSTREAMING BENCHMARK SUMMARY:")
+    _print_scalability_table(results)
+    tqdm.write("\nFULL BENCHMARK CSV:")
     tqdm.write(df.to_string(index=False))
     tqdm.write(f"\nSaved: {OUT_BENCHMARK_CSV}")
     ray.shutdown()

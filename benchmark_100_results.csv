@@ -1,0 +1,4 @@
+cpu_workers,n_videos,n_creators,s1_avg_s,s2_avg_s,s3_avg_s,total_wall_s,throughput_vps,speedup,avg_cpu_pct,peak_gpu_mb
+8,100,34,0.78,0.0,0.24,41.34,2.419,1.0,59.0,0.0
+16,100,34,0.44,0.0,0.15,7.71,12.97,5.36,88.9,0.0
+32,100,34,0.68,0.0,0.2,11.78,8.489,3.51,72.8,0.0

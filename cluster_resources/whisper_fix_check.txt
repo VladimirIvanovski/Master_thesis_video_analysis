@@ -1,0 +1,90 @@
+
+================================================================================
+1amnotjamaila
+================================================================================
+--- OLD (beam_size=1, no repetition guard) ---
+Tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụi chú, tụ Một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu
+
+--- NEW (beam_size=5, repetition_penalty=1.3, no_repeat_ngram_size=3) ---
+Cachorrinha ai, ao al al vai! Rwy'n meddwl am ychydig. අපි
+
+================================================================================
+ridukushmidahit
+================================================================================
+--- OLD (beam_size=1, no repetition guard) ---
+Tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, tụi sợi, Một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một 
+
+--- NEW (beam_size=5, repetition_penalty=1.3, no_repeat_ngram_size=3) ---
+तुजे सोरी आकिया क्हीं हैसो देगू में, तो सोनी शरमाती खॉं. Rwy'n meddwl am ychydig. खोलापारी तारे दिने, तुही नक्यों फन को. ती में हित्रा फुल्ड़, मैरो जिन्दा गानी.
+
+================================================================================
+filhadorei539
+================================================================================
+--- OLD (beam_size=1, no repetition guard) ---
+Cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là, cô ấy nói là
+
+--- NEW (beam_size=5, repetition_penalty=1.3, no_repeat_ngram_size=3) ---
+você precisa dizer o que? cansaste? recupera a esforça bebe, caminhada é lungo! primeira parte da história sustenta Rwy'n meddwl am ychydig. É um homem, tem o homem merece a glória Que é musa que se lembra Boas pessoas Jesus! pour la vie, jusqu'à mort.
+
+================================================================================
+drareejzulfiqar
+================================================================================
+--- OLD (beam_size=1, no repetition guard) ---
+Mình đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và tôi đã tham gia đình và
+
+--- NEW (beam_size=5, repetition_penalty=1.3, no_repeat_ngram_size=3) ---
+میں نے لائی پو سپشن کر رہا ہوں اور یہ ایک دوسرے بڑت ہے اللہ حمدلله अगर ये ना कहो हम से हैं।
+
+================================================================================
+carrieberkk
+================================================================================
+--- OLD (beam_size=1, no repetition guard) ---
+Lê Bù Bù. Tôi không thể tin rằng đây là một thứ, nhưng hình như không quá sợ. Mỗi bác sĩ có một đứa khác, như một bác sĩ, Má Chà, Má Chà, các anh bán nó. Tôi khó khăn, nên tôi khắc chắn là một bác sĩ thật.
+
+--- NEW (beam_size=5, repetition_penalty=1.3, no_repeat_ngram_size=3) ---
+I can't believe this is a thing, but honestly not too surprised. Each mystery bag comes with different Starbucks drinks whether frappuccino or matcha you name it!
+
+================================================================================
+da.rafiki
+================================================================================
+--- OLD (beam_size=1, no repetition guard) ---
+Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày có ai không? Mày c
+
+--- NEW (beam_size=5, repetition_penalty=1.3, no_repeat_ngram_size=3) ---
+I'm glad to have you back. Yeah, yeah... Why should we do that? We've had it for a long time already! Don't look back on your brother's life alone! You just gotta bust out wait I say sorry, bro Right now fuck. Yeah didn't cook me dinner tonight so tomorrow morning first thing I'm following a divorce because it is his job to feed you the fuck i look like. A fridge anyway
+
+================================================================================
+alabialasela4
+================================================================================
+--- OLD (beam_size=1, no repetition guard) ---
+Mà dạc là cơ dạng chúc bà, yếu cơ phối lâu, ồn lâu lâu lâu bị cư lấy lâu rì. Lâu suy, mắt dạc kèm nhớ chì kèm rùi lâu, ồn tố bà lì đạc bè nhì cơ hوف à. Mà sĩ đà sinh tiêu bà cơ hồn, ồn nhì cụt ồn tố gồm. Bè lâu nhì, và lia yếu ào rùi lâu rì rì, ì rì ô, ôn đà bồ. Điều này, đừng bỏ mặt mặt mặt.
+
+--- NEW (beam_size=5, repetition_penalty=1.3, no_repeat_ngram_size=3) ---
+ន្ក ប់ Please accept my apology.
+
+================================================================================
+9baii7
+================================================================================
+--- OLD (beam_size=1, no repetition guard) ---
+Một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một Cô rìa của mình đã đưa cho mình một tên tình trạng và mình đã tự hỏi tất cả nh
+
+--- NEW (beam_size=5, repetition_penalty=1.3, no_repeat_ngram_size=3) ---
+Rwy'n meddwl am ychydig. بنات صدق أول ما تجربينه بتحسي نشيلو شرطك كل بوكس يوجد 14 منتج فبتكلم عسريع الكريم اللي باقي مننا كم حبة و يخلص لكرام القورى
+
+================================================================================
+amanda_hadzimichalis
+================================================================================
+--- OLD (beam_size=1, no repetition guard) ---
+Một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một Mình sẽ chụp chụp cho một cái này. Một mục tiêu, một mục tiêu, một mục tiêu, m
+
+--- NEW (beam_size=5, repetition_penalty=1.3, no_repeat_ngram_size=3) ---
+Rwy'n meddwl am ychydig. herself. Listen, if you want a full coverage foundation You're gonna wanna grab one from A drag queen this One is so amazing it comes with the stick or just pop It out and can do The pump but I like to Do This Stick because i feel Like he Just Gives me all Rwy'n meddwl am ychydig. to my rare beauty cream blush in the shade Hope it is just so beautiful on this skin look how nice that Is I mean absolutely flawless you cannot go wrong with where Beauty Cream Blush It blends like a dream On top of your makeup. If doesn't peel, if does increase? Rwy'n meddwl am ychydig. I d
+
+================================================================================
+adam.digital
+================================================================================
+--- OLD (beam_size=1, no repetition guard) ---
+Một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một mục tiêu, một Bây giờ mình sẽ bắt đầu mọi phần mọi phần mọi phần mọi phần mọi phần mọi phần 
+
+--- NEW (beam_size=5, repetition_penalty=1.3, no_repeat_ngram_size=3) ---
+Rwy'n meddwl am ychydig. Now build mobile apps in minutes. Zero coding, go to emergent and let's built a Mobile app that looks like WhatsApp BAM! Look at this the user interface look exactly same And AI character can chat with me What is more? You Can Build Games Browser Extensions Web Apps Mobile App All In One Place Want More Control Switch To Pro Mode Train Your own Ai agent Do what you want The Mobile Agent Features Alive now Comment Yes I'll DM it Rwy'n meddwl am ychydig. Here's the most flexible way to host your site in 2025. turns into Tesla showroom. Oh my god! Apple logo turn's in to 

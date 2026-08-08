@@ -22,6 +22,7 @@ results = es.search(index=INDEX_NAME, size=100)
 print(f"\n📊 Total documents found: {results['hits']['total']['value']}\n")
 
 for hit in results["hits"]["hits"]:
+    print(hit)
     username = hit['_source']['username']
     transcription = hit['_source']['transcription'][:100] if hit['_source']['transcription'] else "No transcription"
     print(f"Username: {username}")
