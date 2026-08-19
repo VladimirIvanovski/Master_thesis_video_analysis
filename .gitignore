@@ -1,0 +1,39 @@
+.idea/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local media and vendor dumps
+results_4/
+*.mp4
+*.wav
+tiktok_profile_5k.csv
+
+# Thesis Word drafts and other course work (not this repo)
+*.docx
+OCR_paddle/
+OCR_testing/
+applied_ml/
+custom_pipeline/
+paper.html
+paper.pdf
+paper_2.html
+paper_2.pdf
+update_thesis*.py
+generate_thesis.py
+fix_thesis_final.py
+modal_whisper_app.py
+
+*.safetensors
+
+# Local notes, logs, faculty PDFs
+*.pdf
+*.html
+pipeline.log
+stats/
+thesis_*.txt
+REPORT_SECTION_6_5_AND_IMAGES.txt
+create_front_page.py
+generate_prilog_pdf.py
+print_report_image_paths.py
