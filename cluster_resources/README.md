@@ -8,7 +8,12 @@ These files support the experiments in Chapter 4 of the thesis.
 
 The vendor export of ~5,000 profiles is **not** published here (research permission only). This file is the 357-creator subset used for download, transcription, and indexing.
 
-## Other evaluation tables
+## Evaluation tables and scripts
 
 - [`task1_labeling.csv`](task1_labeling.csv) — Precision@10 labels (config, query, rank, creator, score, relevant).
 - [`task2_creator_clusters.csv`](task2_creator_clusters.csv) — cluster id per indexed creator (k = 10, visual-only).
+- [`winning_config.json`](winning_config.json) — best fusion config from Task 1 (visual-only, P@10 = 0.48).
+- [`common.py`](common.py), [`task1_compute_precision.py`](task1_compute_precision.py), [`task1_generate_labeling_csv.py`](task1_generate_labeling_csv.py), [`task2_clustering.py`](task2_clustering.py) — recreate the tables.
+- [`task1_frames/`](task1_frames/) and [`judging_frame_paths.csv`](judging_frame_paths.csv) — frames used when judging P@10.
+
+Chapter figures used in the thesis Word file are in [`thesis_figures/`](thesis_figures/).

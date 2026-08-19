@@ -1,28 +1,14 @@
-FLASK APPS - HOW TO RUN
-=======================
+FLASK DEMO (Port 5001)
+======================
 
-TWO APPS AVAILABLE:
+Side-by-side standard vs personalized search (used in the thesis).
 
-1. SIMPLE APP (Port 5000)
-   - Basic personalized search
-   - Single results page
-   
-   Run: python flask_apps\simple_app.py
-   Open: http://localhost:5000
+  python flask_apps\demo_app.py
+  http://localhost:5001
 
-2. DEMO APP (Port 5001) - FOR PROFESSOR
-   - Side-by-side comparison
-   - Shows standard vs personalized results
-   - Visual thumbnails
-   - Statistics panel
-   
-   Run: python flask_apps\demo_app.py
-   Open: http://localhost:5001
+Login: vladimir / vladimir123
 
-LOGIN:
-Username: vladimir
-Password: vladimir123
+One-time setup:
 
-SETUP (ONE TIME):
-python init_user_interactions.py
-python rebuild_faiss_index.py
+  python init_user_interactions.py
+  python rebuild_faiss_index.py

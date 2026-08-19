@@ -2,20 +2,17 @@
 # Configuration constants (shared across all stages)
 # ======================================================
 
+import os
 import random
 
-PROXIES = [
-    "http://123.45.67.89:8080",
-    "http://98.76.54.32:8000",
-    "http://11.22.33.44:3128"
-]
+PROXIES = [p for p in os.environ.get("TIKTOK_PROXIES", "").split(",") if p]
 
 def get_random_proxy():
-    return random.choice(PROXIES)
+    return random.choice(PROXIES) if PROXIES else None
 
 RESULTS_DIR = "results_4"
 TRANSCRIPTIONS_DIR = "transcriptions"
-ES_PASSWORD = "Pacer12345!"
+ES_PASSWORD = os.environ.get("ES_PASSWORD", "")
 
 # TikTok filtering
 NUM_CREATORS = 350
@@ -38,7 +35,7 @@ IMAGE_WEIGHT = 0.85
 TEXT_WEIGHT = 0.15
 
 # Input file
-CSV_PATH = "C:/Users/vladimir/Downloads/tiktok_profile_5k.csv"
+CSV_PATH = os.environ.get("CSV_PATH", "cluster_resources/thesis_357_creators.csv")
 
 # Ray configuration
 RAY_DASHBOARD = True
